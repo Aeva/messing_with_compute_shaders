@@ -98,6 +98,17 @@ bool BuildCompute()
 }
 
 
+bool FindExtension(const char* ExtensionName)
+{
+  if (!glewGetExtension(ExtensionName))
+  {
+    std::cout << "Extension is not available: " << ExtensionName << "!!\n";
+    return false;
+  }
+  return true;
+}
+
+
 bool Setup ()
 {
   return BuildCompute();
@@ -161,11 +172,12 @@ int main()
     return 1;
   }
 
-  if (!glewGetExtension("GL_ARB_compute_shader"))
-  {
-    std::cout << "Compute shader extension is not available!\n";
-    return 1;
-  }
+  if (!FindExtension("GL_ARB_compute_shader")) return 1;
+  if (!FindExtension("GL_ARB_program_interface_query")) return 1;
+  if (!FindExtension("GL_ARB_shader_storage_buffer_object")) return 1;
+  if (!FindExtension("GL_ARB_shader_image_load_store")) return 1;
+  if (!FindExtension("GL_ARB_shader_image_size")) return 1;
+  if (!FindExtension("GL_ARB_gpu_shader5")) return 1;
 
   GLint ContextFlags;
   glGetIntegerv(GL_CONTEXT_FLAGS, &ContextFlags);
