@@ -14,8 +14,13 @@ bool HCF = false;
 const int ScreenWidth = 1024;
 const int ScreenHeight = 768;
 
-const int GroupSizeX = ScreenWidth / 8;
-const int GroupSizeY = ScreenHeight / 8;
+const int PartitionsX = 16;
+const int PartitionsY = 16;
+const int PartitionsZ = 16;
+const int PartitionAera = PartitionsX * PartitionsY * PartitionsZ;
+
+const int GroupSizeX = PartitionAera / 64;
+const int GroupSizeY = 1;
 const int GroupSizeZ = 1;
 
 std::string ReadFile(const char* Path)
