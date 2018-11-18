@@ -15,9 +15,9 @@ void main()
 	atomicOr(morp, offset);
 	groupMemoryBarrier();
 
-	float RedChanne = float(gl_LocalInvocationIndex % 2);
+	float RedChannel = float(gl_LocalInvocationIndex % 2);
 
-	vec4 Pixel = vec4(RedChanne, 0.0, 0.0, 1.0);
+	vec4 Pixel = vec4(RedChannel, 0.0, 0.0, 1.0);
 	ivec2 PixelCoords = ivec2(gl_GlobalInvocationID.xy);
 	imageStore(img_output, PixelCoords, Pixel);
 }

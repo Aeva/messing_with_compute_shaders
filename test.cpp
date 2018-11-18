@@ -7,11 +7,16 @@
 #include <string>
 
 GLuint CSGProgram;
+GLuint SplatProgram;
 GLuint SomeUAV;
 bool HCF = false;
 
 const int ScreenWidth = 1024;
 const int ScreenHeight = 768;
+
+const int GroupSizeX = ScreenWidth / 8;
+const int GroupSizeY = ScreenHeight / 8;
+const int GroupSizeZ = 1;
 
 std::string ReadFile(const char* Path)
 {
@@ -70,33 +75,64 @@ std::string CheckLinkStatus(GLuint ObjectId)
 }
 
 
-bool BuildCompute()
+bool BuildShader(const char* Path, GLenum ShaderType, GLuint& ShaderObject)
 {
-  std::string Source = ReadFile("fnord.glsl");
+  std::cout << "Building Shader: " << Path << '\n';
+  std::string Source = ReadFile(Path);
   const GLchar* SourcePtr = Source.data();
   const GLint SourceSize = Source.size();
 
-  GLuint ComputeShader = glCreateShader(GL_COMPUTE_SHADER);
-  glShaderSource(ComputeShader, 1, &SourcePtr, &SourceSize);
-  glCompileShader(ComputeShader);
+  ShaderObject = glCreateShader(ShaderType);
+  glShaderSource(ShaderObject, 1, &SourcePtr, &SourceSize);
+  glCompileShader(ShaderObject);
 
-  std::string Error = CheckCompileStatus(ComputeShader);
+  std::string Error = CheckCompileStatus(ShaderObject);
   if (!Error.empty())
   {
     std::cout << Error << '\n';
     return false;
   }
+  return true;
+}
 
-  CSGProgram = glCreateProgram();
-  glAttachShader(CSGProgram, ComputeShader);
-  glLinkProgram(CSGProgram);
 
-  Error = CheckLinkStatus(CSGProgram);
+bool LinkProgram(GLuint* ShaderObjects, int ShaderCount, GLuint& ProgramObject)
+{
+  ProgramObject = glCreateProgram();
+  for (int i=0; i<ShaderCount; ++i)
+  {
+    GLuint ShaderObject = ShaderObjects[i];
+    glAttachShader(ProgramObject, ShaderObject);
+  }
+  glLinkProgram(ProgramObject);
+
+  std::string Error = CheckLinkStatus(ProgramObject);
   if (!Error.empty())
   {
     std::cout << Error << '\n';
     return false;
   }
+  return true;
+}
+
+
+bool BuildShaderPrograms()
+{
+  // compute shader
+  GLuint ComputeShader;
+  bool bCompiledOk = BuildShader("fnord.glsl", GL_COMPUTE_SHADER, ComputeShader);
+  if (!bCompiledOk) return false;
+  bool bLinkedOk = LinkProgram(&ComputeShader, 1, CSGProgram);
+  if (!bLinkedOk) return false;
+
+  // render results
+  GLuint SplatShaders[2];
+  bCompiledOk = BuildShader("gdi.vert", GL_VERTEX_SHADER, SplatShaders[0]);
+  if (!bCompiledOk) return false;
+  bCompiledOk = BuildShader("whyyyy.frag", GL_FRAGMENT_SHADER, SplatShaders[1]);
+  if (!bCompiledOk) return false;
+  bLinkedOk = LinkProgram(SplatShaders, 2, SplatProgram);
+  if (!bLinkedOk) return false;
 
   return true;
 }
@@ -115,9 +151,8 @@ bool FindExtension(const char* ExtensionName)
 
 bool Setup ()
 {
-  bool bSuccess = false;
-
-  bSuccess = BuildCompute();
+  bool bSuccess = BuildShaderPrograms();
+  if(!bSuccess) return false;
 
   GLuint tex_output;
   glGenTextures(1, &SomeUAV);
@@ -126,6 +161,14 @@ bool Setup ()
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, ScreenWidth, ScreenHeight, 0, GL_RGBA, GL_FLOAT, NULL);
   glBindImageTexture(0, SomeUAV, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
+  // cheese opengl into letting us draw a full screen triangle without any data
+  GLuint vao;
+  glGenVertexArrays(1, &vao);
+  glBindVertexArray(vao);
+
+  glDisable(GL_CULL_FACE);
+  glDisable(GL_DEPTH_TEST);
+
   return bSuccess;
 }
 
@@ -133,15 +176,11 @@ bool Setup ()
 void Render()
 {
   glUseProgram(CSGProgram);
-
-  const int GroupSizeX = ScreenWidth / 8;
-  const int GroupSizeY = ScreenHeight / 8;
-  const int GroupSizeZ = 1;
-
   glDispatchCompute(GroupSizeX, GroupSizeY, GroupSizeZ);
-
   glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
+  glUseProgram(SplatProgram);
+  glDrawArrays(GL_TRIANGLES, 0, 3);
 }
 
 
