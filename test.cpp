@@ -7,7 +7,11 @@
 #include <string>
 
 GLuint CSGProgram;
+GLuint SomeUAV;
 bool HCF = false;
+
+const int ScreenWidth = 1024;
+const int ScreenHeight = 768;
 
 std::string ReadFile(const char* Path)
 {
@@ -111,14 +115,33 @@ bool FindExtension(const char* ExtensionName)
 
 bool Setup ()
 {
-  return BuildCompute();
+  bool bSuccess = false;
+
+  bSuccess = BuildCompute();
+
+  GLuint tex_output;
+  glGenTextures(1, &SomeUAV);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, SomeUAV);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, ScreenWidth, ScreenHeight, 0, GL_RGBA, GL_FLOAT, NULL);
+  glBindImageTexture(0, SomeUAV, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+
+  return bSuccess;
 }
 
 
 void Render()
 {
-  //glUseProgram(CSGProgram);
-  //glDispatchCompute(1,0,0);
+  glUseProgram(CSGProgram);
+
+  const int GroupSizeX = ScreenWidth / 8;
+  const int GroupSizeY = ScreenHeight / 8;
+  const int GroupSizeZ = 1;
+
+  glDispatchCompute(GroupSizeX, GroupSizeY, GroupSizeZ);
+
+  glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
 }
 
 
@@ -152,11 +175,11 @@ int main()
 
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-  //glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
   glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
 
-  GLFWwindow* Window = glfwCreateWindow(640, 480, "meep", NULL, NULL);
+  GLFWwindow* Window = glfwCreateWindow(ScreenWidth, ScreenHeight, "meep", NULL, NULL);
   if (!Window)
   {
     glfwTerminate();
@@ -176,7 +199,6 @@ int main()
   if (!FindExtension("GL_ARB_program_interface_query")) return 1;
   if (!FindExtension("GL_ARB_shader_storage_buffer_object")) return 1;
   if (!FindExtension("GL_ARB_shader_image_load_store")) return 1;
-  if (!FindExtension("GL_ARB_shader_image_size")) return 1;
   if (!FindExtension("GL_ARB_gpu_shader5")) return 1;
 
   GLint ContextFlags;
