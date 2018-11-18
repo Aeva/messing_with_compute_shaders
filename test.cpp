@@ -159,7 +159,7 @@ bool Setup ()
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, SomeUAV);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, ScreenWidth, ScreenHeight, 0, GL_RGBA, GL_FLOAT, NULL);
-  glBindImageTexture(0, SomeUAV, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+  glBindImageTexture(0, SomeUAV, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
 
   // cheese opengl into letting us draw a full screen triangle without any data
   GLuint vao;
@@ -180,6 +180,8 @@ void Render()
   glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
   glUseProgram(SplatProgram);
+  GLint WhateverLocation = glGetUniformLocation(SplatProgram, "Whatever");
+  glUniform1i(WhateverLocation, 0);
   glDrawArrays(GL_TRIANGLES, 0, 3);
 }
 
