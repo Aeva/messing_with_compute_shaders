@@ -10,53 +10,122 @@ const uvec3 MASK_3D = uvec3(3, 12, 48);
 const uvec2 MASK_2D = uvec2(7, 56);
 
 // this is the machinery for processing the csg tree
-shared uint64_t Registers[2];
+shared uint64_t Registers[3];
 const uint ACC = 0;
 const uint EXT = 1;
+const uint TMP = 2; // can't be used by instructions
 
-const uint OP_STOP = 0;
-const uint OP_UNION = 1;
-const uint OP_INTERSECT = 2;
-const uint OP_REMOVE = 3;
-const uint OP_SPHERE = 4;
+// Current instruction layout:
+// 31..30 -> csg mode
+//  29..1 -> shape index
+//      0 -> register
+const uint OPCODE_OFFSET = 30;
+const uint OPCODE_MASK = 3 << OPCODE_OFFSET;
+const uint SHAPE_OFFSET = 1;
+const uint SHAPE_MASK = 0x1fffffff << SHAPE_OFFSET;
+const uint REGISTER_OFFSET = 0;
+const uint REGISTER_MASK = 1;
 
-// Using a struct for now for the sake of prototyping, but the shape
-// parameters probably should be moved to their own arrays for compactness.
-// And then we can probably pack everything we need just fine into one 32 bit
-// uint and do away with the struct.
-struct CsgCommand
-{
-  uint Opcode;
-  uint Register;
-  vec3 Origin;
-  float Radius;
-};
+const uint OP_STOP 			= 0 << OPCODE_OFFSET;
+const uint OP_UNION 		= 1 << OPCODE_OFFSET;
+const uint OP_INTERSECT 	= 2 << OPCODE_OFFSET;
+const uint OP_REMOVE 		= 3 << OPCODE_OFFSET;
 
-// these are going to be inputs eventually
+// Special modes:
+const uint SPECIAL_COMBINE	= SHAPE_MASK >> SHAPE_OFFSET;
+
+// Handy shape codes:
+const float SHAPE_SPHERE = 0;
+const float fSHAPE_SPHERE = uintBitsToFloat(SHAPE_SPHERE);
+
+
+
+// ---- (PRETEND) SHADER INPUTS ----//
+
+
 const vec3 ModelCenter = vec3(0, 0, 0);
 const vec3 PartitionCount = vec3(16, 16, 16);
 const float PartitionWidth = 10; // world space size
 const vec3 PartitionSize = PartitionCount * PartitionWidth;
 
-const uint Instructions[9] {
-	CsgCommand(OP_SHAPE, ACC, SPHERE, vec3(0,0,0), 10),
-	CsgCommand(OP_SHAPE, EXT, SPHERE, vec3(10,0,0), 5),
-	CsgCommand(OP_SHAPE, EXT, SPHERE, vec3(-10,0,0), 5),
-	CsgCommand(OP_SHAPE, EXT, SPHERE, vec3(0,10,0), 5),
-	CsgCommand(OP_SHAPE, EXT, SPHERE, vec3(0,-10,0), 5),
-	CsgCommand(OP_SHAPE, EXT, SPHERE, vec3(0,0,10), 5),
-	CsgCommand(OP_SHAPE, EXT, SPHERE, vec3(0,0,-10), 5),
-	CsgCommand(OP_REMOVE, 0, 0, vec3(0), 0),
-	CsgCommand(OP_STOP, 0, 0, vec3(0), 0)
+const float ShapeStuff[40] = {
+	fSHAPE_SPHERE, 0, 0, 0, 10,  // offset 0
+	fSHAPE_SPHERE, 10, 0, 0, 4,  // offset 5
+	fSHAPE_SPHERE, -10, 0, 0, 4, // offset 10
+	fSHAPE_SPHERE, 0, 10, 0, 4,  // offset 15
+	fSHAPE_SPHERE, 0, -10, 0, 4, // offset 20
+	fSHAPE_SPHERE, 0, 0, 10, 4,  // offset 25
+	fSHAPE_SPHERE, 0, 0, -10, 4  // offset 30
+	fSHAPE_SPHERE, 0, 0, 0, 6,  // offset 35
 };
 
-// some shape functions
-bool SphereFunction(vec3 WorldSpace, vec3 Origin, float Radius)
+const uint Instructions[9] = {
+	OP_UNION | ACC | (0 << SHAPE_OFFSET),
+	OP_REMOVE | ACC | (5 << SHAPE_OFFSET),
+	OP_REMOVE | ACC | (10 << SHAPE_OFFSET),
+	OP_REMOVE | ACC | (15 << SHAPE_OFFSET),
+	OP_REMOVE | ACC | (20 << SHAPE_OFFSET),
+	OP_REMOVE | ACC | (25 << SHAPE_OFFSET),
+	OP_REMOVE | ACC | (30 << SHAPE_OFFSET),
+	OP_REMOVE | ACC | (35 << SHAPE_OFFSET),
+	OP_STOP
+};
+
+
+
+// ---- SHAPE FUNCTIONS ---- //
+
+
+bool SphereFunction(vec3 WorldPosition, vec3 Origin, float Radius)
 {
-	return distance(WorldSpace, Origin) <= Radius;
+	return distance(WorldPosition, Origin) <= Radius;
 }
 
-// do the thing
+
+
+// ---- CSG MACHINERY ---- //
+
+
+// This method determines the correct shape function and parameters for a
+// given shape index and then calls the shape function for the given world
+// position.
+bool RenderShape(const vec3 WorldPosition, const uint ShapeIndex)
+{
+	const uint ShapeType = floatToUintBits(ShapeStuff[ShapeIndex]);
+	if (ShapeIndex == SHAPE_SPHERE)
+	{
+		const vec3 SphereCenter = vec3(
+			ShapeStuff[ShapeIndex+1],
+			ShapeStuff[ShapeIndex+2],
+			ShapeStuff[ShapeIndex+3]
+		);
+		const float SphereRadius = ShapeStuff[ShapeIndex+4];
+		return SphereFunction(WorldPosition, SphereCenter, SphereRadius);
+	}
+	return false;
+}
+
+
+// This applies a given CSG operator on two registers and stores the result
+// into whichever register was given as the left hand register.
+void CombineShapes(const uint Opcode, const uint LHS, const uint RHS)
+{
+	if (Opcode == OP_UNION && Operand > 0)
+	{
+		AtomicOr(Registers[LHS], Registers[RHS]);
+	}
+	else if (Opcode == OP_INTERSECT)
+	{
+		AtomicAnd(Registers[LHS], Registers[RHS]);
+	}
+	else if (Opcode == OP_REMOVE)
+	{
+		AtomicAnd(Registers[LHS], ~Registers[RHS]);
+	}
+}
+
+
+// Solve a CSG tree and render the results.
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 layout(rgba32f, binding = 0) uniform image2D img_output;
 void main()
@@ -80,33 +149,44 @@ void main()
 	// Part two: Solve the csg tree.
 	for (uint i=0; true; ++i)
 	{
-		const CsgCommand Instruction = Instructions[i];
-		if (Instruction.Opcode == OP_STOP)
+		const uint Instruction = Instructions[i];
+		const uint Opcode = Instruction & OPCODE_MASK;
+		const uint Register = Instruction & REGISTER_MASK;
+		const uint ShapeIndex = (Instruction & SHAPE_MASK) >> SHAPE_OFFSET;
+
+		if (Opcode == OP_STOP)
 		{
 			break;
 		}
-		else if (bIsLeader && Instruction.Opcode == OP_UNION)
+		else
 		{
-			Registers[ACC] = Registers[ACC] | Registers[EXT];
-		}
-		else if (bIsLeader && Instruction.Opcode == OP_INTERSECT)
-		{
-			Registers[ACC] = Registers[ACC] & Registers[EXT];
-		}
-		else if (bIsLeader && Instruction.Opcode == OP_REMOVE)
-		{
-			Registers[ACC] = Registers[ACC] & ~Registers[EXT];
-		}
-		else if (Instruction.Opcode == OP_SPHERE)
-		{
-			const bool bTest = SphereFunction(WorldSpace, Instruction.Origin, Instruction.Radius);
-			if (bTest)
+			if (bIsLeader)
 			{
-				AtomicOr(Registers[Instruction.Register], VoxelBitmask);
+				if (ShapeIndex == SPECIAL_COMBINE)
+				{
+					const uint MOVE = Register == ACC ? EXT : ACC;
+					Registers[TMP] = Registers[MOVE];
+				}
+				else
+				{
+					Registers[TMP] = 0;
+				}
+			}
+			groupMemoryBarrier();
+
+			if (ShapeIndex != SPECIAL_COMBINE && RenderShape(WorldSpace, ShapeIndex))
+			{
+				AtomicOr(Registers[TMP], VoxelBitmask);
+			}
+			groupMemoryBarrier();
+
+			if (bIsLeader)
+			{
+				CombineShapes(Opcode, Register, TMP);
 			}
 		}
-		groupMemoryBarrier();
 	}
+	groupMemoryBarrier();
 
 	// Part three: Project the spatial partition into screen space.
 
