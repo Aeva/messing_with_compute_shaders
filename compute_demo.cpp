@@ -120,16 +120,16 @@ bool BuildShaderPrograms()
 {
   // compute shader
   GLuint ComputeShader;
-  bool bCompiledOk = BuildShader("fnord.glsl", GL_COMPUTE_SHADER, ComputeShader);
+  bool bCompiledOk = BuildShader("shaders/example.comp", GL_COMPUTE_SHADER, ComputeShader);
   if (!bCompiledOk) return false;
   bool bLinkedOk = LinkProgram(&ComputeShader, 1, CSGProgram);
   if (!bLinkedOk) return false;
 
   // render results
   GLuint SplatShaders[2];
-  bCompiledOk = BuildShader("gdi.vert", GL_VERTEX_SHADER, SplatShaders[0]);
+  bCompiledOk = BuildShader("shaders/splat.vert", GL_VERTEX_SHADER, SplatShaders[0]);
   if (!bCompiledOk) return false;
-  bCompiledOk = BuildShader("whyyyy.frag", GL_FRAGMENT_SHADER, SplatShaders[1]);
+  bCompiledOk = BuildShader("shaders/splat.frag", GL_FRAGMENT_SHADER, SplatShaders[1]);
   if (!bCompiledOk) return false;
   bLinkedOk = LinkProgram(SplatShaders, 2, SplatProgram);
   if (!bLinkedOk) return false;

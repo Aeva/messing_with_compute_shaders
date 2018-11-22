@@ -28,7 +28,7 @@ def pkg_config(args):
 
 if __name__ == "__main__":
     compiler = [find_compiler()]
-    compiler_args = ['-odemo', '-std=c++14']
+    compiler_args = ['-ohail_eris', '-std=c++14']
     linker_args = pkg_config("pkg-config --static --libs glfw3")
     linker_args += pkg_config("pkg-config --static --libs glew")
     defines = {}
