@@ -120,7 +120,7 @@ bool BuildShaderPrograms()
 {
   // compute shader
   GLuint ComputeShader;
-  bool bCompiledOk = BuildShader("shaders/example.comp", GL_COMPUTE_SHADER, ComputeShader);
+  bool bCompiledOk = BuildShader("shaders/example.glsl", GL_COMPUTE_SHADER, ComputeShader);
   if (!bCompiledOk) return false;
   bool bLinkedOk = LinkProgram(&ComputeShader, 1, CSGProgram);
   if (!bLinkedOk) return false;
