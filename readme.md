@@ -29,3 +29,6 @@ And then to run the example:
 ```
 ./hail_eris
 ```
+
+If all goes well, you'll see a pattern of pink and green concentric
+rings overlaying a checker pattern.
