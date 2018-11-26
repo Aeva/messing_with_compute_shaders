@@ -175,7 +175,7 @@ bool Setup ()
   bool bSuccess = BuildShaderPrograms();
   if(!bSuccess) return false;
 
-  GLuint tex_output;
+  /*
   glGenTextures(1, &SomeUAV);
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, SomeUAV);
@@ -185,6 +185,7 @@ bool Setup ()
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, ScreenWidth, ScreenHeight, 0, GL_RGBA, GL_FLOAT, NULL);
   glBindImageTexture(0, SomeUAV, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+  */
 
   // Indirect rendering parameters buffer
   DrawArraysIndirectCommand BlankCommand;
@@ -214,13 +215,14 @@ bool Setup ()
 void Render()
 {
   glUseProgram(CSGProgram);
+  glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, IndirectParamsBuffer);
   glDispatchCompute(GroupSizeX, GroupSizeY, GroupSizeZ);
-  glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+  glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
   glUseProgram(SplatProgram);
-  GLint WhateverLocation = glGetUniformLocation(SplatProgram, "Whatever");
-  glUniform1i(WhateverLocation, 0);
-  glDrawArrays(GL_TRIANGLES, 0, 3);
+  glBindBuffer(GL_DRAW_INDIRECT_BUFFER, IndirectParamsBuffer);
+  glDrawArraysIndirect(GL_TRIANGLE_STRIP, 0);
 }
 
 
