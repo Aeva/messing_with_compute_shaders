@@ -6,10 +6,17 @@
 #include <sstream>
 #include <string>
 
+// Set true to stop the demo.
+bool HCF = false;
+
 GLuint CSGProgram;
 GLuint SplatProgram;
+
 GLuint SomeUAV;
-bool HCF = false;
+GLuint IndirectParamsBuffer;
+GLuint RegionBuffer;
+GLuint InstructionBuffer;
+GLuint ShapeParamBuffer;
 
 const int ScreenWidth = 1024;
 const int ScreenHeight = 768;
@@ -17,6 +24,20 @@ const int ScreenHeight = 768;
 const int GroupSizeX = ScreenWidth / 8;
 const int GroupSizeY = ScreenHeight / 8;
 const int GroupSizeZ = 1;
+
+
+struct DrawArraysIndirectCommand {
+  GLuint Count;
+  GLuint PrimCount;
+  GLuint First;
+  GLuint BaseInstance;
+};
+
+struct CSGRegion {
+};
+
+struct CSGInstruction {
+};
 
 std::string ReadFile(const char* Path)
 {
@@ -164,6 +185,19 @@ bool Setup ()
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, ScreenWidth, ScreenHeight, 0, GL_RGBA, GL_FLOAT, NULL);
   glBindImageTexture(0, SomeUAV, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+
+  // Indirect rendering parameters buffer
+  DrawArraysIndirectCommand BlankCommand;
+  glGenBuffers(1, &IndirectParamsBuffer);
+  glBindBuffer(GL_DRAW_INDIRECT_BUFFER, IndirectParamsBuffer);
+  glBufferData(GL_DRAW_INDIRECT_BUFFER, sizeof(DrawArraysIndirectCommand), &BlankCommand, GL_STATIC_DRAW);
+
+  // Input data SSBO for the compute pass
+  glGenBuffers(1, &RegionBuffer);
+
+  // Inputs data SSBOs for the pixel shader
+  glGenBuffers(1, &InstructionBuffer);  
+  glGenBuffers(1, &ShapeParamBuffer);
 
   // cheese opengl into letting us draw a full screen triangle without any data
   GLuint vao;
