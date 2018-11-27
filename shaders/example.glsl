@@ -24,15 +24,15 @@ layout(std430, binding = 1) buffer DispatchControlBlock
 
 struct CSGRegion
 {
-	vec4 BoundsMin;
-	vec4 BoundsMax;
+	vec3 BoundsMin;
+	vec3 BoundsMax;
 };
 
 
-layout(std430, binding = 2) buffer CSGRegionDataBlock
+layout(std430, binding = 2) buffer RegionDataBlock
 {
 	CSGRegion Regions[];
-} CSGRegionData;
+} RegionData;
 
 
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
@@ -43,13 +43,16 @@ void main()
 		DispatchControl.InstanceCount = 0;
 	}
 	memoryBarrierBuffer();
-	const CSGRegion Region = CSGRegionData.Regions[gl_GlobalInvocationID.x];
-	
-	// I imagine frustums will be involved somewhere eventually
-	bool bCullingPassed = gl_GlobalInvocationID.x < RegionCount;
-
-	if (bCullingPassed)
+	if (gl_GlobalInvocationID.x < RegionCount)
 	{
-		atomicAdd(DispatchControl.InstanceCount, 1);
+		const CSGRegion Region = RegionData.Regions[gl_GlobalInvocationID.x];
+	
+		// I imagine frustums will be involved somewhere eventually
+		bool bCullingPassed = Region.BoundsMin.x <= Region.BoundsMax.x;
+
+		if (bCullingPassed)
+		{
+			atomicAdd(DispatchControl.InstanceCount, 1);
+		}
 	}
 }

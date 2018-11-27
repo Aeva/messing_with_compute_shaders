@@ -35,10 +35,16 @@ void SetupCullingUniforms()
 
 void SetupCullingAABBs()
 {
-	CSGRegion TestRegionData;
+	CSGRegion TestData;
+	TestData.BoundsMin[0] = -1;
+	TestData.BoundsMin[1] = -1;
+	TestData.BoundsMin[2] = -1;
+	TestData.BoundsMax[0] = 1;
+	TestData.BoundsMax[1] = 1;
+	TestData.BoundsMax[2] = 1;
  	glGenBuffers(1, &RegionBuffer);
  	glBindBuffer(GL_SHADER_STORAGE_BUFFER, RegionBuffer);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(CSGRegion), &TestRegionData, GL_STATIC_DRAW);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(CSGRegion), &TestData, GL_STATIC_DRAW);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
