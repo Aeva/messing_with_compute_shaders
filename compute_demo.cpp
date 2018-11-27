@@ -1,43 +1,15 @@
 
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <string>
+#include "demo_common.h"
+#include "compute_pass.h"
+#include "gfx_pass.h"
 
 // Set true to stop the demo.
 bool HCF = false;
 
-GLuint CSGProgram;
-GLuint SplatProgram;
-
-GLuint SomeUAV;
-GLuint IndirectParamsBuffer;
-GLuint RegionBuffer;
-GLuint InstructionBuffer;
-GLuint ShapeParamBuffer;
-
-const int ScreenWidth = 1024;
-const int ScreenHeight = 768;
-
-const int GroupSizeX = ScreenWidth / 8;
-const int GroupSizeY = ScreenHeight / 8;
-const int GroupSizeZ = 1;
-
-
-struct DrawArraysIndirectCommand {
-  GLuint Count;
-  GLuint PrimCount;
-  GLuint First;
-  GLuint BaseInstance;
-};
-
-struct CSGRegion {
-};
-
-struct CSGInstruction {
-};
 
 std::string ReadFile(const char* Path)
 {
@@ -137,25 +109,24 @@ bool LinkProgram(GLuint* ShaderObjects, int ShaderCount, GLuint& ProgramObject)
 }
 
 
-bool BuildShaderPrograms()
+bool ShaderProgram::ComputeCompile(const char* ComputePath)
 {
   // compute shader
   GLuint ComputeShader;
-  bool bCompiledOk = BuildShader("shaders/example.glsl", GL_COMPUTE_SHADER, ComputeShader);
+  bool bCompiledOk = BuildShader(ComputePath, GL_COMPUTE_SHADER, ComputeShader);
   if (!bCompiledOk) return false;
-  bool bLinkedOk = LinkProgram(&ComputeShader, 1, CSGProgram);
-  if (!bLinkedOk) return false;
+  return LinkProgram(&ComputeShader, 1, ProgramID);
+}
 
-  // render results
+
+bool ShaderProgram::RasterizationCompile(const char* VertexPath, const char* FragmentPath)
+{
   GLuint SplatShaders[2];
-  bCompiledOk = BuildShader("shaders/splat.vert", GL_VERTEX_SHADER, SplatShaders[0]);
+  bool bCompiledOk = BuildShader(VertexPath, GL_VERTEX_SHADER, SplatShaders[0]);
   if (!bCompiledOk) return false;
-  bCompiledOk = BuildShader("shaders/splat.frag", GL_FRAGMENT_SHADER, SplatShaders[1]);
+  bCompiledOk = BuildShader(FragmentPath, GL_FRAGMENT_SHADER, SplatShaders[1]);
   if (!bCompiledOk) return false;
-  bLinkedOk = LinkProgram(SplatShaders, 2, SplatProgram);
-  if (!bLinkedOk) return false;
-
-  return true;
+  return LinkProgram(SplatShaders, 2, ProgramID);
 }
 
 
@@ -172,57 +143,9 @@ bool FindExtension(const char* ExtensionName)
 
 bool Setup ()
 {
-  bool bSuccess = BuildShaderPrograms();
-  if(!bSuccess) return false;
-
-  /*
-  glGenTextures(1, &SomeUAV);
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, SomeUAV);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, ScreenWidth, ScreenHeight, 0, GL_RGBA, GL_FLOAT, NULL);
-  glBindImageTexture(0, SomeUAV, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
-  */
-
-  // Indirect rendering parameters buffer
-  DrawArraysIndirectCommand BlankCommand;
-  glGenBuffers(1, &IndirectParamsBuffer);
-  glBindBuffer(GL_DRAW_INDIRECT_BUFFER, IndirectParamsBuffer);
-  glBufferData(GL_DRAW_INDIRECT_BUFFER, sizeof(DrawArraysIndirectCommand), &BlankCommand, GL_STATIC_DRAW);
-
-  // Input data SSBO for the compute pass
-  glGenBuffers(1, &RegionBuffer);
-
-  // Inputs data SSBOs for the pixel shader
-  glGenBuffers(1, &InstructionBuffer);  
-  glGenBuffers(1, &ShapeParamBuffer);
-
-  // cheese opengl into letting us draw a full screen triangle without any data
-  GLuint vao;
-  glGenVertexArrays(1, &vao);
-  glBindVertexArray(vao);
-
-  glDisable(GL_CULL_FACE);
-  glDisable(GL_DEPTH_TEST);
-
-  return bSuccess;
-}
-
-
-void Render()
-{
-  glUseProgram(CSGProgram);
-  glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
-  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, IndirectParamsBuffer);
-  glDispatchCompute(GroupSizeX, GroupSizeY, GroupSizeZ);
-  glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-
-  glUseProgram(SplatProgram);
-  glBindBuffer(GL_DRAW_INDIRECT_BUFFER, IndirectParamsBuffer);
-  glDrawArraysIndirect(GL_TRIANGLE_STRIP, 0);
+  if (!CullingPass::Setup()) return false;
+  if (!RenderingPass::Setup()) return false;
+  return true;
 }
 
 
@@ -307,7 +230,8 @@ int main()
 
   while(!glfwWindowShouldClose(Window) && !HCF)
   {
-    Render();
+    CullingPass::Dispatch();
+    RenderingPass::Draw();
     
     glfwSwapBuffers(Window);
     glfwPollEvents();
