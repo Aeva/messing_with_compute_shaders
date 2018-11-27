@@ -13,14 +13,19 @@ GLuint IndirectParamsBuffer;
 
 void SetupCullingUniforms()
 {
-	CullingUniforms Uniforms;
-	Uniforms.RegionCount = RegionCount;
-	/*Uniforms.Projection = {
+	const GLfloat IdentityMatrix[16] = {
 		1, 0, 0, 0,
 		0, 1, 0, 0,
 		0, 0, 1, 0,
 		0, 0, 0, 1
-	};*/
+	};
+
+	CullingUniforms Uniforms;
+	Uniforms.RegionCount = RegionCount;
+	for (int i=0; i<16; ++i)
+	{
+		Uniforms.Projection[i] = IdentityMatrix[i];
+	}
 	glGenBuffers(1, &CullingUniformBuffer);
 	glBindBuffer(GL_UNIFORM_BUFFER, CullingUniformBuffer);
 	glBufferData(GL_UNIFORM_BUFFER, sizeof(CullingUniforms), &Uniforms, GL_STATIC_DRAW);
@@ -65,6 +70,9 @@ bool CullingPass::Setup()
 void CullingPass::Dispatch()
 {
 	glUseProgram(CSGCullingProgram.ProgramID);
+
+	glBindBufferBase(GL_UNIFORM_BUFFER, 0, CullingUniformBuffer);
+
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, IndirectParamsBuffer);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, RegionBuffer);

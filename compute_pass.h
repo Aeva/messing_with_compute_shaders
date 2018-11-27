@@ -12,6 +12,7 @@ namespace CullingPass
 struct CullingUniforms
 {
 	GLuint RegionCount;
+	GLuint Padding[3];
 	GLfloat Projection[16];
 };
 

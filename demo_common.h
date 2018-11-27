@@ -23,7 +23,8 @@ struct ShaderProgram
 };
 
 
-struct DrawArraysIndirectCommand {
+struct DrawArraysIndirectCommand
+{
 	GLuint VertexCount;
 	GLuint InstanceCount;
 	GLuint First;

@@ -38,13 +38,18 @@ layout(std430, binding = 2) buffer CSGRegionDataBlock
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 void main()
 {
+	if (gl_GlobalInvocationID.x == 0)
+	{
+		DispatchControl.InstanceCount = 0;
+	}
+	memoryBarrierBuffer();
 	const CSGRegion Region = CSGRegionData.Regions[gl_GlobalInvocationID.x];
 	
+	// I imagine frustums will be involved somewhere eventually
+	bool bCullingPassed = gl_GlobalInvocationID.x < RegionCount;
 
-
-
-	DispatchControl.VertexCount = 4;
-	DispatchControl.InstanceCount = 1;
-	DispatchControl.First = 0;
-	DispatchControl.BaseInstance = 0;
+	if (bCullingPassed)
+	{
+		atomicAdd(DispatchControl.InstanceCount, 1);
+	}
 }
