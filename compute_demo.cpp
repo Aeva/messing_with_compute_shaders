@@ -221,6 +221,16 @@ int main()
 
   std::cout << glGetString(GL_VERSION) << '\n';
 
+  GLint MaxVertexSSBOs;
+  glGetIntegerv(GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS, &MaxVertexSSBOs);
+  GLint MaxFragmentSSBOs;
+  glGetIntegerv(GL_MAX_FRAGMENT_SHADER_STORAGE_BLOCKS, &MaxFragmentSSBOs);
+  GLint MaxComputeSSBOs;
+  glGetIntegerv(GL_MAX_COMPUTE_SHADER_STORAGE_BLOCKS, &MaxComputeSSBOs);
+  std::cout << "Max Vertex SSBO Blocks: " << MaxVertexSSBOs << '\n'
+            << "Max Fragment SSBO Blocks: " << MaxFragmentSSBOs << '\n'
+            << "Max Compute SSBO Blocks: " << MaxComputeSSBOs << '\n';
+
   if(!Setup())
   {
     std::cout << "Fatal error in application setup.\n";
