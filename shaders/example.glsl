@@ -27,12 +27,20 @@ struct CSGRegion
 	vec3 BoundsMin;
 	vec3 BoundsMax;
 };
-
-
 layout(std430, binding = 2) buffer RegionDataBlock
 {
 	CSGRegion Regions[];
 } RegionData;
+
+
+layout(std430, binding = 3) buffer OutputPlanesBlock
+{
+	// x: CenterX;
+	// y: CenterY;
+	// z: XYExtent;
+	// w: Depth;
+	vec4 Params[];
+} OutputPlanes;
 
 
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
@@ -47,12 +55,42 @@ void main()
 	{
 		const CSGRegion Region = RegionData.Regions[gl_GlobalInvocationID.x];
 	
-		// I imagine frustums will be involved somewhere eventually
+		const float X1 = Region.BoundsMin.x;
+		const float Y1 = Region.BoundsMin.y;
+		const float Z1 = Region.BoundsMin.z;
+		const float X2 = Region.BoundsMax.x;
+		const float Y2 = Region.BoundsMax.y;
+		const float Z2 = Region.BoundsMax.z;
+
+		const vec4 Corners[8] = {
+			vec4(X1, Y1, Z1, 1),
+			vec4(X1, Y1, Z2, 1),
+			vec4(X1, Y2, Z1, 1),
+			vec4(X1, Y2, Z2, 1),
+			vec4(X2, Y1, Z1, 1),
+			vec4(X2, Y1, Z2, 1),
+			vec4(X2, Y2, Z1, 1),
+			vec4(X2, Y2, Z2, 1)
+		};
+
+		vec4 ProjectedMin = Projection * Corners[0];
+		vec4 ProjectedMax = ProjectedMin;
+		for (int i=1; i<8; ++i)
+		{
+			vec4 Projected = Projection * Corners[i];
+			ProjectedMin = min(Projected, ProjectedMin);
+			ProjectedMax = min(Projected, ProjectedMax);
+		}
+
+		
+		// lol idk
 		bool bCullingPassed = Region.BoundsMin.x <= Region.BoundsMax.x;
 
 		if (bCullingPassed)
 		{
-			atomicAdd(DispatchControl.InstanceCount, 1);
+			uint NewPlanes = 1;
+			const uint EndOffset = atomicAdd(DispatchControl.InstanceCount, NewPlanes);
+			const uint StartOffset = EndOffset - NewPlanes;
 		}
 	}
 }
