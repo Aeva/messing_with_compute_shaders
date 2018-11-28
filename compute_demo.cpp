@@ -145,6 +145,10 @@ bool Setup ()
 {
   if (!CullingPass::Setup()) return false;
   if (!RenderingPass::Setup()) return false;
+  glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
+  glDepthFunc(GL_GREATER);
+  glEnable(GL_DEPTH_TEST);
+  glDisable(GL_CULL_FACE);
   return true;
 }
 
@@ -181,7 +185,9 @@ int main()
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
+#if DEBUG_BUILD
   glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
+#endif
 
   GLFWwindow* Window = glfwCreateWindow(ScreenWidth, ScreenHeight, "meep", NULL, NULL);
   if (!Window)
@@ -204,7 +210,9 @@ int main()
   if (!FindExtension("GL_ARB_shader_storage_buffer_object")) return 1;
   if (!FindExtension("GL_ARB_shader_image_load_store")) return 1;
   if (!FindExtension("GL_ARB_gpu_shader5")) return 1;
+  if (!FindExtension("GL_ARB_clip_control")) return 1;
 
+#if DEBUG_BUILD
   GLint ContextFlags;
   glGetIntegerv(GL_CONTEXT_FLAGS, &ContextFlags);
   if (ContextFlags & GL_CONTEXT_FLAG_DEBUG_BIT)
@@ -216,8 +224,9 @@ int main()
   }
   else
   {
-      std::cout << "Debug context not available!\n";
+    std::cout << "Debug context not available!\n";
   }
+#endif
 
   std::cout << glGetString(GL_VERSION) << '\n';
 
@@ -240,6 +249,7 @@ int main()
 
   while(!glfwWindowShouldClose(Window) && !HCF)
   {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     CullingPass::Dispatch();
     RenderingPass::Draw();
     

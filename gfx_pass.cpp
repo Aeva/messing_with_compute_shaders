@@ -17,9 +17,6 @@ bool RenderingPass::Setup()
 	glGenVertexArrays(1, &ScratchVAO);
 	glBindVertexArray(ScratchVAO);
 
-	glDisable(GL_CULL_FACE);
-	glDisable(GL_DEPTH_TEST);
-
 	return CSGRenderingProgram.RasterizationCompile("shaders/splat.vert", "shaders/splat.frag");
 }
 
