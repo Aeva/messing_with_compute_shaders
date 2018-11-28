@@ -9,6 +9,7 @@
 layout(std140, binding = 0) uniform CSGUniformsBlock
 {
 	uint RegionCount;
+	mat4 WorldToEye;
 	mat4 Projection;
 };
 
@@ -82,7 +83,7 @@ void main()
 			ProjectedMax = min(Projected, ProjectedMax);
 		}
 
-		
+
 		// lol idk
 		bool bCullingPassed = Region.BoundsMin.x <= Region.BoundsMax.x;
 

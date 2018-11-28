@@ -14,6 +14,12 @@ bool BuildShader(const char* Path, GLenum ShaderType, GLuint& ShaderObject);
 bool LinkProgram(GLuint* ShaderObjects, int ShaderCount, GLuint& ProgramObject);
 
 
+void ViewMatrix(GLfloat Out[16], const GLfloat Origin[3], const GLfloat Focus[3], const GLfloat Up[3]);
+void ViewMatrix(GLfloat Out[16], const GLfloat Origin[3], const GLfloat Focus[3]);
+void PerspectiveMatrix(GLfloat Out[16]);
+void PrintMatrix(GLfloat Matrix[16], const char* MatrixName);
+
+
 struct ShaderProgram
 {
 	GLuint ProgramID;

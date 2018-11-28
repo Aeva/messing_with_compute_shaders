@@ -10,5 +10,5 @@ void main()
 		vec2(1, -1),
 		vec2(1, 1)
 	};
-	gl_Position = vec4(Corners[gl_VertexID], 0, 1);
+	gl_Position = vec4(Corners[gl_VertexID], 1, 1);
 }

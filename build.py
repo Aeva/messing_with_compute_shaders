@@ -38,6 +38,8 @@ if __name__ == "__main__":
         print("\x1b[3;30;47m{}\x1b[0m".format("Now with debugging!"))
         compiler_args += ['-O0', '-g']
         defines["DEBUG_BUILD"] = 1
+    else:
+        compiler_args += ['-O3']
 
     sources = glob.glob("**.cpp", recursive=True)
 

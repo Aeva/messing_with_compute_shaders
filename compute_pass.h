@@ -13,6 +13,7 @@ struct CullingUniforms
 {
 	GLuint RegionCount;
 	GLuint Padding[3];
+	GLfloat WorldToEye[16];
 	GLfloat Projection[16];
 };
 

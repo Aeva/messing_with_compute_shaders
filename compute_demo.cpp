@@ -145,9 +145,13 @@ bool Setup ()
 {
   if (!CullingPass::Setup()) return false;
   if (!RenderingPass::Setup()) return false;
-  glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
-  glDepthFunc(GL_GREATER);
+
+  // Near depth = 1, Far depth = 0
   glEnable(GL_DEPTH_TEST);
+  glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
+  glClearDepth(0);
+  glDepthFunc(GL_GREATER);
+
   glDisable(GL_CULL_FACE);
   return true;
 }

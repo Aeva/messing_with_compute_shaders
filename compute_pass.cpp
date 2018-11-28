@@ -13,19 +13,17 @@ GLuint IndirectParamsBuffer;
 
 void SetupCullingUniforms()
 {
-	const GLfloat IdentityMatrix[16] = {
-		1, 0, 0, 0,
-		0, 1, 0, 0,
-		0, 0, 1, 0,
-		0, 0, 0, 1
-	};
-
 	CullingUniforms Uniforms;
 	Uniforms.RegionCount = RegionCount;
-	for (int i=0; i<16; ++i)
-	{
-		Uniforms.Projection[i] = IdentityMatrix[i];
-	}
+
+	const GLfloat ViewOrigin[3] = { 5, 0, 5 };
+	const GLfloat ViewFocus[3] = { 0, 0, 0 };
+	ViewMatrix(Uniforms.WorldToEye, ViewOrigin, ViewFocus);
+	PerspectiveMatrix(Uniforms.Projection);
+
+	PrintMatrix(Uniforms.WorldToEye, "WorldToEye");
+	PrintMatrix(Uniforms.Projection, "Projection");
+	
 	glGenBuffers(1, &CullingUniformBuffer);
 	glBindBuffer(GL_UNIFORM_BUFFER, CullingUniformBuffer);
 	glBufferData(GL_UNIFORM_BUFFER, sizeof(CullingUniforms), &Uniforms, GL_STATIC_DRAW);
