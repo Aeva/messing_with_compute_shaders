@@ -34,7 +34,7 @@ template<int Size>
 inline void Normalize(GLfloat Vector[Size])
 {
 	const GLfloat Length = sqrt(DotProduct<Size>(Vector, Vector));
-	const GLfloat LengthRcp = Length > 0 ? 1/Length : 0;
+	const GLfloat LengthRcp = 1 / Length;
 	for (int i=0; i<Size; ++i)
 	{
 		Vector[i] *= LengthRcp;
@@ -65,12 +65,12 @@ void ViewMatrix(GLfloat Out[16], const GLfloat Origin[3], const GLfloat Focus[3]
 		Out[Offset + 0] = AxisX[i];
 		Out[Offset + 1] = AxisY[i];
 		Out[Offset + 2] = AxisZ[i];
-		Out[Offset + 2] = 0;
+		Out[Offset + 3] = 0;
 	}
 
-	Out[12] = DotProduct<3>(AxisX, Focus) * -1;
-	Out[13] = DotProduct<3>(AxisY, Focus) * -1;
-	Out[14] = DotProduct<3>(AxisZ, Focus) * -1;
+	Out[12] = DotProduct<3>(AxisX, Origin) * -1;
+	Out[13] = DotProduct<3>(AxisY, Origin) * -1;
+	Out[14] = DotProduct<3>(AxisZ, Origin) * -1;
 	Out[15] = 1;
 }
 
@@ -84,22 +84,33 @@ void ViewMatrix(GLfloat Out[16], const GLfloat Origin[3], const GLfloat Focus[3]
 
 void PerspectiveMatrix(GLfloat Out[16])
 {
-	const GLfloat FieldOfView = 45 * 0.0174533; // Radians
-	const GLfloat AspectRatio = ScreenWidth / ScreenHeight;
+	const GLfloat FieldOfView = 1.0 / (45.0 * 0.0174533 * 0.5); // Radians
+	const GLfloat AspectRatio = (GLfloat)ScreenWidth / (GLfloat)ScreenHeight;
 	const GLfloat NearPlane = 0.1; // Is this a reasonable default?
+	const GLfloat FarPlane = 1000;
+	const GLfloat DepthRange = FarPlane - NearPlane;
 
-	const GLfloat Y = 1 / tan(FieldOfView / 2);
-	const GLfloat X = Y / AspectRatio;
+	std::cout << "width: " << ScreenWidth << "\n";
+	std::cout << "height: " << ScreenHeight << "\n";
+	std::cout << "fov: " << FieldOfView << "\n";
+	std::cout << "aspect: " << AspectRatio << "\n";
+	std::cout << "near: " << NearPlane << "\n";
+	std::cout << "far: " << FarPlane << "\n";
+
+	const GLfloat ScaleX = (1 / AspectRatio) * FieldOfView;
+	const GLfloat ScaleY = FieldOfView;
+	const GLfloat ScaleZ = FarPlane / DepthRange;
+	const GLfloat OffsetZ = -(FarPlane + NearPlane) / DepthRange;
 
 	for (int i=0; i<16; ++i)
 	{
 		Out[i] = 0;	
 	}
-	Out[0] = X;
-	Out[5] = Y;
-	Out[10] = -1;
-	Out[11] = -1;
-	Out[14] = -2 * NearPlane;
+	Out[0] = ScaleX;
+	Out[5] = ScaleY;
+	Out[10] = ScaleZ;
+	Out[11] = 1.0;
+	Out[14] = OffsetZ;
 }
 
 
