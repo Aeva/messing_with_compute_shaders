@@ -9,12 +9,17 @@ namespace CullingPass
 }
 
 
+struct ViewUniforms
+{
+	GLfloat WorldToView[16];
+	GLfloat Projection[16];
+};
+
+
 struct CullingUniforms
 {
 	GLuint RegionCount;
 	GLuint Padding[3];
-	GLfloat WorldToEye[16];
-	GLfloat Projection[16];
 };
 
 

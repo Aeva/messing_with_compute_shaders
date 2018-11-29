@@ -6,15 +6,20 @@
 #extension GL_ARB_shading_language_420pack : require
 
 
-layout(std140, binding = 0) uniform CSGUniformsBlock
+layout(std140, binding = 0) uniform ViewUniformsBlock
 {
-	uint RegionCount;
-	mat4 WorldToEye;
+	mat4 WorldToView;
 	mat4 Projection;
 };
 
 
-layout(std430, binding = 1) buffer DispatchControlBlock
+layout(std140, binding = 1) uniform CullingUniformsBlock
+{
+	uint RegionCount;
+};
+
+
+layout(std430, binding = 2) buffer DispatchControlBlock
 {
 	uint VertexCount;
 	uint InstanceCount;
@@ -28,13 +33,14 @@ struct CSGRegion
 	vec3 BoundsMin;
 	vec3 BoundsMax;
 };
-layout(std430, binding = 2) buffer RegionDataBlock
+layout(std430, binding = 3) buffer RegionDataBlock
 {
 	CSGRegion Regions[];
-} RegionData;
+};
 
 
-layout(std430, binding = 3) buffer OutputPlanesBlock
+/*
+layout(std430, binding = 4) buffer OutputPlanesBlock
 {
 	// x: CenterX;
 	// y: CenterY;
@@ -42,7 +48,7 @@ layout(std430, binding = 3) buffer OutputPlanesBlock
 	// w: Depth;
 	vec4 Params[];
 } OutputPlanes;
-
+*/
 
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 void main()
@@ -54,7 +60,7 @@ void main()
 	memoryBarrierBuffer();
 	if (gl_GlobalInvocationID.x < RegionCount)
 	{
-		const CSGRegion Region = RegionData.Regions[gl_GlobalInvocationID.x];
+		const CSGRegion Region = Regions[gl_GlobalInvocationID.x];
 	
 		const float X1 = Region.BoundsMin.x;
 		const float Y1 = Region.BoundsMin.y;
@@ -74,18 +80,18 @@ void main()
 			vec4(X2, Y2, Z2, 1)
 		};
 
-		vec4 ProjectedMin = Projection * Corners[0];
-		vec4 ProjectedMax = ProjectedMin;
+		vec4 ViewMin = WorldToView * Corners[0];
+		vec4 ViewMax = ViewMin;
 		for (int i=1; i<8; ++i)
 		{
-			vec4 Projected = Projection * Corners[i];
-			ProjectedMin = min(Projected, ProjectedMin);
-			ProjectedMax = min(Projected, ProjectedMax);
+			vec4 ViewSpaceCorner = WorldToView * Corners[i];
+			ViewMin = min(ViewSpaceCorner, ViewMin);
+			ViewMax = min(ViewSpaceCorner, ViewMax);
 		}
 
 
 		// lol idk
-		bool bCullingPassed = Region.BoundsMin.x <= Region.BoundsMax.x;
+		bool bCullingPassed = ViewMax.z < 0;
 
 		if (bCullingPassed)
 		{

@@ -7,26 +7,32 @@ const unsigned int RegionCount = 1;
 
 ShaderProgram CSGCullingProgram;
 GLuint RegionBuffer;
+GLuint ViewUniformBuffer;
 GLuint CullingUniformBuffer;
 GLuint IndirectParamsBuffer;
 
 
 void SetupCullingUniforms()
 {
-	CullingUniforms Uniforms;
-	Uniforms.RegionCount = RegionCount;
-
-	const GLfloat ViewOrigin[3] = { 5, 0, 5 };
-	const GLfloat ViewFocus[3] = { 0, 0, 0 };
-	ViewMatrix(Uniforms.WorldToEye, ViewOrigin, ViewFocus);
-	PerspectiveMatrix(Uniforms.Projection);
-
-	PrintMatrix(Uniforms.WorldToEye, "WorldToEye");
-	PrintMatrix(Uniforms.Projection, "Projection");
-	
-	glGenBuffers(1, &CullingUniformBuffer);
-	glBindBuffer(GL_UNIFORM_BUFFER, CullingUniformBuffer);
-	glBufferData(GL_UNIFORM_BUFFER, sizeof(CullingUniforms), &Uniforms, GL_STATIC_DRAW);
+	{
+		ViewUniforms Uniforms;
+		const GLfloat ViewOrigin[3] = { 5, 5, 5 };
+		const GLfloat ViewFocus[3] = { 0, 0, 0 };
+		ViewMatrix(Uniforms.WorldToView, ViewOrigin, ViewFocus);
+		PerspectiveMatrix(Uniforms.Projection);
+		PrintMatrix(Uniforms.WorldToView, "WorldToView");
+		PrintMatrix(Uniforms.Projection, "Projection");
+		glGenBuffers(1, &ViewUniformBuffer);
+		glBindBuffer(GL_UNIFORM_BUFFER, ViewUniformBuffer);
+		glBufferData(GL_UNIFORM_BUFFER, sizeof(ViewUniforms), &Uniforms, GL_STATIC_DRAW);
+	}
+	{
+		CullingUniforms Uniforms;
+		Uniforms.RegionCount = RegionCount;
+		glGenBuffers(1, &CullingUniformBuffer);
+		glBindBuffer(GL_UNIFORM_BUFFER, CullingUniformBuffer);
+		glBufferData(GL_UNIFORM_BUFFER, sizeof(CullingUniforms), &Uniforms, GL_STATIC_DRAW);
+	}
 	glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
 
@@ -75,11 +81,12 @@ void CullingPass::Dispatch()
 {
 	glUseProgram(CSGCullingProgram.ProgramID);
 
-	glBindBufferBase(GL_UNIFORM_BUFFER, 0, CullingUniformBuffer);
+	glBindBufferBase(GL_UNIFORM_BUFFER, 0, ViewUniformBuffer);
+	glBindBufferBase(GL_UNIFORM_BUFFER, 1, CullingUniformBuffer);
 
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, IndirectParamsBuffer);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, RegionBuffer);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, IndirectParamsBuffer);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, RegionBuffer);
 	glDispatchCompute(FAST_DIV_ROUND_UP(RegionCount, 64), 1, 1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
