@@ -50,6 +50,16 @@ layout(std430, binding = 4) buffer OutputPlanesBlock
 } OutputPlanes;
 */
 
+
+vec4 ProjectAndRenormalize(vec4 InVector)
+{
+	const vec4 Projected = Projection * InVector;
+	const vec3 Renormalized = Projected.xyz / Projected.w;
+	const float ClampedZ = clamp(Renormalized.z, 0, 1);
+	return vec4(Renormalized.xy, ClampedZ, 1);
+}
+
+
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 void main()
 {
@@ -89,12 +99,19 @@ void main()
 			ViewMax = min(ViewSpaceCorner, ViewMax);
 		}
 
-
 		// lol idk
 		bool bCullingPassed = ViewMax.z < 0;
 
 		if (bCullingPassed)
 		{
+			const vec4 TopLeftFar = ProjectAndRenormalize(ViewMin);
+			const vec4 BottomRightFar = ProjectAndRenormalize(vec4(ViewMax.xy, ViewMin.z, 1));
+			const vec4 TopLeftNear = ProjectAndRenormalize(vec4(ViewMin.xy, ViewMax.z, 1));
+			const vec4 BottomRightNear = ProjectAndRenormalize(Projection * ViewMax);
+
+			const float DepthRange = distance(BottomRightNear.z, TopLeftFar.z);
+			// I guess we'd multiply DepthRange by some constant and clamp to get the number for NewPlanes
+
 			uint NewPlanes = 1;
 			const uint EndOffset = atomicAdd(DispatchControl.InstanceCount, NewPlanes);
 			const uint StartOffset = EndOffset - NewPlanes;

@@ -67,11 +67,18 @@ void SetupIndirectRenderingParams()
 }
 
 
+void SetupSliceOutput()
+{
+
+}
+
+
 bool CullingPass::Setup()
 {
 	SetupCullingUniforms();
 	SetupCullingAABBs();
 	SetupIndirectRenderingParams();
+	SetupSliceOutput();
 	
 	return CSGCullingProgram.ComputeCompile("shaders/example.glsl");
 }
