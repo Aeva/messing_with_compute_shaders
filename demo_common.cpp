@@ -90,12 +90,14 @@ void PerspectiveMatrix(GLfloat Out[16])
 	const GLfloat FarPlane = 1000;
 	const GLfloat DepthRange = FarPlane - NearPlane;
 
+#if DEBUG_BUILD
 	std::cout << "width: " << ScreenWidth << "\n";
 	std::cout << "height: " << ScreenHeight << "\n";
 	std::cout << "fov: " << FieldOfView << "\n";
 	std::cout << "aspect: " << AspectRatio << "\n";
 	std::cout << "near: " << NearPlane << "\n";
 	std::cout << "far: " << FarPlane << "\n";
+#endif
 
 	const GLfloat ScaleX = (1 / AspectRatio) * FieldOfView;
 	const GLfloat ScaleY = FieldOfView;

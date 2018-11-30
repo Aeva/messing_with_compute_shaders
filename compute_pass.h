@@ -29,3 +29,20 @@ struct CSGRegion
 	GLfloat BoundsMin[4];
 	GLfloat BoundsMax[4];
 };
+
+
+struct DrawParams
+{
+	GLuint VertexCount;
+	GLuint InstanceCount;
+	GLuint First;
+	GLuint BaseInstance;
+};
+
+
+struct OutputVolume
+{
+	GLfloat ViewMin[4];
+	GLfloat ViewMax[4];
+	GLuint CSGID;
+};
