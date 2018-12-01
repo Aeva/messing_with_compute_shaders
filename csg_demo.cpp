@@ -5,6 +5,11 @@
 #include "compute_pass.h"
 #include "gfx_pass.h"
 
+#if RENDERDOC_CAPTURE_AND_QUIT
+#include "renderdoc.h"
+#include <dlfcn.h>
+RENDERDOC_API_1_1_2 *rdoc_api = NULL;
+#endif
 
 GLFWwindow* Window;
 
@@ -111,6 +116,19 @@ StatusCode SetupGLFW()
     	<< "Max Fragment SSBO Blocks: " << MaxFragmentSSBOs << '\n'
 		<< "Max Compute SSBO Blocks: " << MaxComputeSSBOs << '\n';
 
+#if RENDERDOC_CAPTURE_AND_QUIT
+	if(void *mod = dlopen("librenderdoc.so", RTLD_NOW | RTLD_NOLOAD))
+	{
+    	pRENDERDOC_GetAPI RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)dlsym(mod, "RENDERDOC_GetAPI");
+    	int RenderdocStatus = RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_1_2, (void **)&rdoc_api);
+    	if (RenderdocStatus != 1)
+    	{
+    		std::cout << "Could not initialize RenderDoc.\n";
+    		return StatusCode::FAIL;
+    	}
+	}
+#endif
+
 	return StatusCode::PASS;
 }
 
@@ -131,6 +149,17 @@ StatusCode DemoSetup ()
 }
 
 
+void DrawFrame()
+{
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	CullingPass::Dispatch();
+	RenderingPass::Draw();
+    
+	glfwSwapBuffers(Window);
+	glfwPollEvents();
+}
+
+
 #define QUIT_ON_FAIL(Expr) if (Expr == StatusCode::FAIL) return 1;
 
 
@@ -139,16 +168,18 @@ int main()
 	QUIT_ON_FAIL(SetupGLFW());
 	QUIT_ON_FAIL(DemoSetup());
 
+#if RENDERDOC_CAPTURE_AND_QUIT
+	rdoc_api->StartFrameCapture(NULL, NULL);
+#else
 	while(!glfwWindowShouldClose(Window) && !GetHaltAndCatchFire())
+#endif
 	{
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		CullingPass::Dispatch();
-		RenderingPass::Draw();
-    
-		glfwSwapBuffers(Window);
-		glfwPollEvents();
-	}   
-  
+		DrawFrame();
+	}
+#if RENDERDOC_CAPTURE_AND_QUIT
+	rdoc_api->EndFrameCapture(NULL, NULL);
+#endif
+
 	glfwDestroyWindow(Window);
 	glfwTerminate();
 	return 0;

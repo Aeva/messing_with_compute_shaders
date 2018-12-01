@@ -36,12 +36,18 @@ if __name__ == "__main__":
     defines = {}
 
     debug_build = bool(sys.argv.count("--debug") or sys.argv.count("-d"))
-    if debug_build:
+    renderdoc_build = bool(sys.argv.count("--renderdoc") or sys.argv.count("-r"))
+
+    if debug_build or renderdoc_build:
         print("\x1b[3;30;47m{}\x1b[0m".format("Now with debugging!"))
         compiler_args += ['-O0', '-g']
         defines["DEBUG_BUILD"] = 1
     else:
         compiler_args += ['-O3']
+
+    if renderdoc_build:
+        defines["RENDERDOC_CAPTURE_AND_QUIT"] = 1        
+        print("    \x1b[3;30;47m{}\x1b[0m".format("...and RenderDoc!"))
 
     sources = glob.glob("**.cpp", recursive=True)
 
@@ -59,3 +65,6 @@ if __name__ == "__main__":
     delta = stop - start
     adjusted = math.floor(delta * 100)/100
     print("Build time: {} second(s)".format(adjusted))
+
+    if debug_build and renderdoc_build:
+        print ("Rember to symlink \"renderdoc.h\" and \"librenderdoc.so\" into the project root!")
