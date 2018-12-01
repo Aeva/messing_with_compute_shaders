@@ -1,4 +1,4 @@
-
+#include "vector_math.h"
 #include "compute_pass.h"
 using namespace CullingPass;
 
@@ -68,16 +68,16 @@ void SetupSliceOutput()
 }
 
 
-bool CullingPass::Setup()
+StatusCode CullingPass::Setup()
 {
-	const bool bCompileStatus = CSGCullingProgram.ComputeCompile("shaders/example.glsl");
-	if (!bCompileStatus) return false;
+	RETURN_ON_FAIL(CSGCullingProgram.ComputeCompile("shaders/example.glsl"));
 
 	SetupCullingUniforms();
 	SetupCullingAABBs();
 	SetupSliceOutput();
 	SetupIndirectRenderingParams();
-	return true;
+
+	return StatusCode::PASS;
 }
 
 

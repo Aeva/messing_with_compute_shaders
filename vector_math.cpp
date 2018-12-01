@@ -1,13 +1,12 @@
-
 #include <math.h>
-
 #if DEBUG_BUILD
 #include <iostream>
 #include <iomanip>
 #include <string.h>
 #endif
 
-#include "demo_common.h"
+#include "gl_boilerplate.h"
+#include "vector_math.h"
 
 
 inline void CrossProduct(GLfloat Out[3], const GLfloat LHS[3], const GLfloat RHS[3])

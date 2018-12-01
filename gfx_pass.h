@@ -1,10 +1,12 @@
 #pragma once
-#include "demo_common.h"
+#include "errors.h"
+#include "gl_boilerplate.h"
+
 
 
 namespace RenderingPass
 {
-	bool Setup();
+	StatusCode Setup();
 	void Draw();
 }
 

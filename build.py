@@ -2,6 +2,8 @@
 
 import sys
 import glob
+import time
+import math
 import subprocess
 
 
@@ -51,4 +53,9 @@ if __name__ == "__main__":
     build += sources
 
     print(" ".join(build))
+    start = time.time()
     subprocess.run(build, stdout=sys.stdout, stderr=sys.stdout)
+    stop = time.time()
+    delta = stop - start
+    adjusted = math.floor(delta * 100)/100
+    print("Build time: {} second(s)".format(adjusted))

@@ -7,8 +7,10 @@ GLuint ShapeParamBuffer;
 GLuint InstructionBuffer;
 
 
-bool RenderingPass::Setup()
+StatusCode RenderingPass::Setup()
 {
+	RETURN_ON_FAIL(CSGRenderingProgram.RasterizationCompile("shaders/splat.vert", "shaders/splat.frag"));
+
 	glGenBuffers(1, &InstructionBuffer);  
 	glGenBuffers(1, &ShapeParamBuffer);
 
@@ -17,7 +19,7 @@ bool RenderingPass::Setup()
 	glGenVertexArrays(1, &ScratchVAO);
 	glBindVertexArray(ScratchVAO);
 
-	return CSGRenderingProgram.RasterizationCompile("shaders/splat.vert", "shaders/splat.frag");
+	return StatusCode::PASS;
 }
 
 
