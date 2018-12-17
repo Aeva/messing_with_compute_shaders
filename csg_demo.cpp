@@ -2,8 +2,8 @@
 #include <iostream>
 #include "errors.h"
 #include "gl_boilerplate.h"
-#include "compute_pass.h"
-#include "gfx_pass.h"
+#include "10_volume_setup/compute_pass.h"
+#include "20_volume_draw/gfx_pass.h"
 
 #if RENDERDOC_CAPTURE_AND_QUIT
 #include "renderdoc.h"

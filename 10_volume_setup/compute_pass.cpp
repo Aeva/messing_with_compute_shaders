@@ -1,4 +1,4 @@
-#include "vector_math.h"
+#include "../vector_math.h"
 #include "compute_pass.h"
 using namespace CullingPass;
 
@@ -70,7 +70,7 @@ void SetupSliceOutput()
 
 StatusCode CullingPass::Setup()
 {
-	RETURN_ON_FAIL(CSGCullingProgram.ComputeCompile("shaders/example.glsl"));
+	RETURN_ON_FAIL(CSGCullingProgram.ComputeCompile("10_volume_setup/volume_setup.glsl"));
 
 	SetupCullingUniforms();
 	SetupCullingAABBs();

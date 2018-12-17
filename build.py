@@ -49,7 +49,8 @@ if __name__ == "__main__":
         defines["RENDERDOC_CAPTURE_AND_QUIT"] = 1        
         print("    \x1b[3;30;47m{}\x1b[0m".format("...and RenderDoc!"))
 
-    sources = glob.glob("**.cpp", recursive=True)
+    sources = glob.glob("*.cpp")
+    sources += glob.glob("*/*.cpp")
 
     build = []
     build += compiler
