@@ -5,6 +5,7 @@ import glob
 import time
 import math
 import subprocess
+import glsl_include
 
 
 def find_compiler():
@@ -28,7 +29,7 @@ def pkg_config(args):
     return subprocess.check_output(args.split(' ')).decode().strip().split(' ')
 
 
-if __name__ == "__main__":
+def build_program():
     compiler = [find_compiler()]
     compiler_args = ['-ohail_eris', '-std=c++14']
     linker_args = pkg_config("pkg-config --static --libs glfw3")
@@ -49,8 +50,7 @@ if __name__ == "__main__":
         defines["RENDERDOC_CAPTURE_AND_QUIT"] = 1        
         print("    \x1b[3;30;47m{}\x1b[0m".format("...and RenderDoc!"))
 
-    sources = glob.glob("*.cpp")
-    sources += glob.glob("*/*.cpp")
+    sources = glob.glob("**/*.cpp", recursive=True)
 
     build = []
     build += compiler
@@ -69,3 +69,19 @@ if __name__ == "__main__":
 
     if debug_build and renderdoc_build:
         print ("Rember to symlink \"renderdoc.h\" and \"librenderdoc.so\" into the project root!")
+
+
+def build_shaders():
+    shaders = glob.glob("**/*.glsl", recursive=True)
+    shaders += glob.glob("**/*.vert", recursive=True)
+    shaders += glob.glob("**/*.frag", recursive=True)
+    for shader in shaders:
+        glsl_include.process_file(shader)
+
+
+if __name__ == "__main__":
+    if sys.argv.count("--shaders-only") or sys.argv.count("-s"):
+        build_shaders()
+    else:
+        build_program()
+        build_shaders()

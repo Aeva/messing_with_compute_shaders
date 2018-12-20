@@ -1,3 +1,5 @@
 hail_eris
 librenderdoc.so
 renderdoc.h
+*.built
+__pycache__

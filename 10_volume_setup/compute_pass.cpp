@@ -70,7 +70,7 @@ void SetupSliceOutput()
 
 StatusCode CullingPass::Setup()
 {
-	RETURN_ON_FAIL(CSGCullingProgram.ComputeCompile("10_volume_setup/volume_setup.glsl"));
+	RETURN_ON_FAIL(CSGCullingProgram.ComputeCompile("10_volume_setup/volume_setup.glsl.built"));
 
 	SetupCullingUniforms();
 	SetupCullingAABBs();

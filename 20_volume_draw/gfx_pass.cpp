@@ -9,7 +9,7 @@ GLuint InstructionBuffer;
 
 StatusCode RenderingPass::Setup()
 {
-	RETURN_ON_FAIL(CSGRenderingProgram.RasterizationCompile("20_volume_draw/volume_draw.vert", "20_volume_draw/volume_draw.frag"));
+	RETURN_ON_FAIL(CSGRenderingProgram.RasterizationCompile("20_volume_draw/volume_draw.vert.built", "20_volume_draw/volume_draw.frag.built"));
 
 	glGenBuffers(1, &InstructionBuffer);  
 	glGenBuffers(1, &ShapeParamBuffer);
