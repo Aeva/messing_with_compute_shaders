@@ -1,5 +1,5 @@
 
-#include "gfx_pass.hpp"
+#include "gfx_pass.h"
 
 
 ShaderProgram CSGRenderingProgram;

@@ -1,5 +1,5 @@
-#include "../vector_math.hpp"
-#include "compute_pass.hpp"
+#include "../vector_math.h"
+#include "compute_pass.h"
 using namespace CullingPass;
 
 

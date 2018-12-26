@@ -2,7 +2,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
-#include "gl_boilerplate.hpp"
+#include "gl_boilerplate.h"
 
 
 std::string ReadFile(const char* Path)
