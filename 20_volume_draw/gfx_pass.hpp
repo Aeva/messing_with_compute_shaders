@@ -1,6 +1,6 @@
 #pragma once
-#include "../errors.h"
-#include "../gl_boilerplate.h"
+#include "../errors.hpp"
+#include "../gl_boilerplate.hpp"
 
 
 

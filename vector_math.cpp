@@ -5,8 +5,8 @@
 #include <string.h>
 #endif
 
-#include "gl_boilerplate.h"
-#include "vector_math.h"
+#include "gl_boilerplate.hpp"
+#include "vector_math.hpp"
 
 
 inline void CrossProduct(GLfloat Out[3], const GLfloat LHS[3], const GLfloat RHS[3])

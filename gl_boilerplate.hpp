@@ -1,7 +1,7 @@
 #pragma once
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include "errors.h"
+#include "errors.hpp"
 
 
 const int ScreenWidth = 1024;
