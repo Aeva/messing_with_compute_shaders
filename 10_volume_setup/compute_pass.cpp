@@ -4,7 +4,8 @@
 using namespace CullingPass;
 
 
-ShaderProgram CSGCullingProgram;
+ShaderProgram TestDataSetupProgram;
+ShaderProgram RayCastingProgram;
 
 ShaderStorageBuffer PositiveSpaceSSBO;
 ShaderStorageBuffer ActiveRegionsSSBO;
@@ -65,7 +66,7 @@ void SetupPositiveSpace()
 	FillSphere(*Blob.Advance<Bounds>(), 300, 200, 200, 50);
 
 	PositiveSpaceSSBO.Initialize(Blob.Data(), TotalSize);
-	PositiveSpaceSSBO.AttachToBlock(CSGCullingProgram, "PositiveSpaceBlock");
+	PositiveSpaceSSBO.AttachToBlock(TestDataSetupProgram, "PositiveSpaceBlock");
 }
 
 
@@ -83,7 +84,7 @@ void SetupActiveRegions()
 	Blob.Write<GLuint>(0); // LongestPath
 
 	ActiveRegionsSSBO.Initialize(Blob.Data(), TotalSize);
-	ActiveRegionsSSBO.AttachToBlock(CSGCullingProgram, "ActiveRegionsBlock");
+	ActiveRegionsSSBO.AttachToBlock(TestDataSetupProgram, "ActiveRegionsBlock");
 }
 
 
@@ -98,13 +99,14 @@ void SetupWorkItemsBlock()
 	Blob.Write<GLuint>(0); // Count
 
 	WorkItemsSSBO.Initialize(Blob.Data(), TotalSize);
-	WorkItemsSSBO.AttachToBlock(CSGCullingProgram, "WorkItemsBlock");
+	WorkItemsSSBO.AttachToBlock(TestDataSetupProgram, "WorkItemsBlock");
 }
 
 
 StatusCode CullingPass::Setup()
 {
-	RETURN_ON_FAIL(CSGCullingProgram.ComputeCompile("10_volume_setup/volume_setup.glsl.built"));
+	RETURN_ON_FAIL(TestDataSetupProgram.ComputeCompile("10_volume_setup/data_setup.glsl.built"));
+	RETURN_ON_FAIL(RayCastingProgram.ComputeCompile("10_volume_setup/raycaster.glsl.built"));
 
 	SetupPositiveSpace();
 	SetupActiveRegions();
@@ -118,7 +120,7 @@ StatusCode CullingPass::Setup()
 
 void CullingPass::Dispatch()
 {
-	glUseProgram(CSGCullingProgram.ProgramID);
+	glUseProgram(TestDataSetupProgram.ProgramID);
 	PositiveSpaceSSBO.BindBlock();
 	ActiveRegionsSSBO.BindBlock();
 	WorkItemsSSBO.BindBlock();
