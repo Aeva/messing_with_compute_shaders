@@ -43,6 +43,9 @@ layout(std430) buffer ActiveRegionsBlock
 } ActiveRegions;
 
 
+layout(rg32i) uniform iimage2D TileListHead;
+
+/*
 const uint LANE_OFFSET = 28;
 const uint LANE_MASK = 0xF << LANE_OFFSET;
 const uint AGE_OFFSET = 20;
@@ -58,6 +61,7 @@ layout(std430) buffer WorkItemsBlock
 	uint Count;
 	uint PackedData[];
 } WorkItems;
+*/
 
 
 bool TestPointInAABB(vec3 Point, vec3 BoxCenter, vec3 BoxExtent)

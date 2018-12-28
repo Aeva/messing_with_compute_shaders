@@ -75,6 +75,8 @@ void main()
 		}
 	}
 
+	imageStore(TileListHead, ivec2(gl_GlobalInvocationID.xy), ivec4(HeadChunk, PathDepth, 0, 0));
+	/*
 	if (HeadChunk > -1)
 	{
 		const uint Lanes = TILE_SIZE*TILE_SIZE;
@@ -87,4 +89,5 @@ void main()
 		}
 		atomicMax(ActiveRegions.LongestPath, PathDepth);
 	}
+	*/
 }

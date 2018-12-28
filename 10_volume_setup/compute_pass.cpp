@@ -9,7 +9,8 @@ ShaderProgram RayCastingProgram;
 
 ShaderStorageBuffer PositiveSpaceSSBO;
 ShaderStorageBuffer ActiveRegionsSSBO;
-ShaderStorageBuffer WorkItemsSSBO;
+//ShaderStorageBuffer WorkItemsSSBO;
+GLuint SomeUAV;
 
 
 struct BlobBuilder
@@ -94,6 +95,7 @@ void SetupActiveRegions()
 
 void SetupWorkItemsBlock()
 {
+	/*
 	const int MaxCount = ScreenWidth * ScreenHeight;
 	const size_t PrefixSize = sizeof(GLuint);
 	const size_t ArraySize = sizeof(GLuint) * MaxCount;
@@ -104,6 +106,16 @@ void SetupWorkItemsBlock()
 
 	WorkItemsSSBO.Initialize(Blob.Data(), TotalSize);
 	WorkItemsSSBO.AttachToBlock(TestDataSetupProgram, "WorkItemsBlock");
+	*/
+	GLuint tex_output;
+	glGenTextures(1, &SomeUAV);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, SomeUAV);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RG32I, FAST_DIV_ROUND_UP(ScreenWidth, 4), FAST_DIV_ROUND_UP(ScreenHeight, 4), 0, GL_RG_INTEGER, GL_INT, NULL);
 }
 
 
@@ -127,7 +139,9 @@ void CullingPass::Dispatch()
 	glUseProgram(TestDataSetupProgram.ProgramID);
 	PositiveSpaceSSBO.BindBlock();
 	ActiveRegionsSSBO.BindBlock();
-	WorkItemsSSBO.BindBlock();
+	//WorkItemsSSBO.BindBlock();
+	glBindImageTexture(0, SomeUAV, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RG32I);
+
 	glDispatchCompute(
 		FAST_DIV_ROUND_UP(ScreenWidth, 4),
 		FAST_DIV_ROUND_UP(ScreenHeight, 4),
