@@ -1,4 +1,4 @@
-#include "common.glsl"
+#include "10_volume_setup/common.glsl"
 
 // Group size is arbitrary.
 // Each thread is a tile.
@@ -19,31 +19,12 @@ void main()
 	// Generously assuming that the bounds list is sorted front to back.
 	for (uint i=0; i<PositiveSpace.Count; ++i)
 	{
-		//const Bounds Test = PositiveSpace.Data[i];
-
-		// HACK hard coded test data, because for some reason PositiveSpace.Data[n].Center is
-		// showing the extent data, and .Extent is just 0.
-		Bounds Test;
-		if (i == 0)
-		{
-			Test.Center = vec3(250, 220, 50);
-			Test.Extent = vec4(20, 20, 20, 20);
-		}
-		if (i == 1)
-		{
-			Test.Center = vec3(200, 200, 200);
-			Test.Extent = vec4(100, 100, 100, 100);
-		}
-		if (i == 2)
-		{
-			Test.Center = vec3(300, 200, 200);
-			Test.Extent = vec4(50, 50, 50, 50);
-		}
+		const Bounds Test = PositiveSpace.Data[i];
 
 		// This could be tightened a bit for spheres.
 		const float Near = clamp(Test.Center.z - Test.Extent.z, 0, 1024);
 		const float Far = clamp(Test.Center.z + Test.Extent.z, 0, 1024);
-		const bool bAccepted = Far >= 0 && TestAABBOverlap(TileCenter, TileExtent, Test.Center, Test.Extent.xyz);
+		const bool bAccepted = Far >= 0 && TestAABBOverlap(TileCenter, TileExtent, Test.Center.xyz, Test.Extent.xyz);
 		if (bAccepted)
 		{
 			if (EndDepth < 0)

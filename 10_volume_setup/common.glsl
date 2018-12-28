@@ -13,7 +13,7 @@ struct Bounds
 {
 	// When the bounds describes a sphere, all four components of Extent are the radius.
 	// When the bounds describes an AABB, the alpha component of Extent is zero.
-	vec3 Center;
+	vec4 Center;
 	vec4 Extent;
 };
 layout(std430) buffer PositiveSpaceBlock

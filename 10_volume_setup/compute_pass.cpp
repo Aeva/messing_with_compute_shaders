@@ -45,6 +45,7 @@ void FillSphere(Bounds &Data, GLfloat X, GLfloat Y, GLfloat Z, GLfloat Radius)
 	Data.Center[0] = X;
 	Data.Center[1] = Y;
 	Data.Center[2] = Z;
+	Data.Center[3] = 1;
 	Data.Extent[0] = Radius;
 	Data.Extent[1] = Radius;
 	Data.Extent[2] = Radius;
@@ -55,12 +56,15 @@ void FillSphere(Bounds &Data, GLfloat X, GLfloat Y, GLfloat Z, GLfloat Radius)
 void SetupPositiveSpace()
 {
 	const size_t Count = 3;
-	const size_t PrefixSize = sizeof(GLuint);
+	const size_t PrefixSize = sizeof(GLuint) * 4;
 	const size_t ArraySize = sizeof(Bounds) * Count;
 	const size_t TotalSize = PrefixSize + ArraySize;
 
 	BlobBuilder Blob(TotalSize);
 	Blob.Write<GLuint>(Count);
+	Blob.Write<GLuint>(0xFF); // Padding to align the array correctly.
+	Blob.Write<GLuint>(0xFF);
+	Blob.Write<GLuint>(0xFF);
 	FillSphere(*Blob.Advance<Bounds>(), 300, 300, 50, 20);
 	FillSphere(*Blob.Advance<Bounds>(), 200, 200, 200, 100);
 	FillSphere(*Blob.Advance<Bounds>(), 300, 200, 200, 50);
@@ -106,7 +110,7 @@ void SetupWorkItemsBlock()
 StatusCode CullingPass::Setup()
 {
 	RETURN_ON_FAIL(TestDataSetupProgram.ComputeCompile("10_volume_setup/data_setup.glsl.built"));
-	RETURN_ON_FAIL(RayCastingProgram.ComputeCompile("10_volume_setup/raycaster.glsl.built"));
+	//RETURN_ON_FAIL(RayCastingProgram.ComputeCompile("10_volume_setup/raycaster.glsl.built"));
 
 	SetupPositiveSpace();
 	SetupActiveRegions();

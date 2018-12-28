@@ -19,7 +19,7 @@ struct ScreenUniforms
 
 struct Bounds
 {
-	GLfloat Center[3];
+	GLfloat Center[4];
 	GLfloat Extent[4];
 };
 

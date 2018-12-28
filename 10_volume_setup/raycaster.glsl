@@ -1,4 +1,4 @@
-#include "common.glsl"
+#include "10_volume_setup/common.glsl"
 
 
 layout(std430) buffer NextWorkItemsBlock
