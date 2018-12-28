@@ -15,7 +15,7 @@ struct BlobBuilder
 {
 	std::vector<char> Blob;
 	size_t Seek;
-	BlobBuilder(size_t Size, char ClearValue=0xFF)
+	BlobBuilder(size_t Size, char ClearValue='\0')
 	{
 		Seek = 0;
 		Blob.resize(Size, ClearValue);
@@ -53,14 +53,16 @@ void FillSphere(Bounds &Data, GLfloat X, GLfloat Y, GLfloat Z, GLfloat Radius)
 
 void SetupPositiveSpace()
 {
-	const size_t Count = 1;
+	const size_t Count = 3;
 	const size_t PrefixSize = sizeof(GLuint);
 	const size_t ArraySize = sizeof(Bounds) * Count;
 	const size_t TotalSize = PrefixSize + ArraySize;
 
 	BlobBuilder Blob(TotalSize);
 	Blob.Write<GLuint>(Count);
+	FillSphere(*Blob.Advance<Bounds>(), 300, 300, 50, 20);
 	FillSphere(*Blob.Advance<Bounds>(), 200, 200, 200, 100);
+	FillSphere(*Blob.Advance<Bounds>(), 300, 200, 200, 50);
 
 	PositiveSpaceSSBO.Initialize(Blob.Data(), TotalSize);
 	PositiveSpaceSSBO.AttachToBlock(CSGCullingProgram, "PositiveSpaceBlock");
@@ -72,12 +74,13 @@ void SetupActiveRegions()
 	// This happens to work out to a maximum of 16 region entries per tile,
 	// but this is a linked list, and most tiles shouldn't need that many...?
 	const int MaxCount = ScreenWidth * ScreenHeight;
-	const size_t PrefixSize = sizeof(GLuint);
+	const size_t PrefixSize = sizeof(GLuint) * 2;
 	const size_t ArraySize = sizeof(ActiveRegion) * MaxCount;
 	const size_t TotalSize = PrefixSize + ArraySize;
 
 	BlobBuilder Blob(TotalSize);
-	Blob.Write<GLuint>(0);
+	Blob.Write<GLuint>(0); // Count
+	Blob.Write<GLuint>(0); // LongestPath
 
 	ActiveRegionsSSBO.Initialize(Blob.Data(), TotalSize);
 	ActiveRegionsSSBO.AttachToBlock(CSGCullingProgram, "ActiveRegionsBlock");
@@ -92,7 +95,7 @@ void SetupWorkItemsBlock()
 	const size_t TotalSize = PrefixSize + ArraySize;
 
 	BlobBuilder Blob(TotalSize);
-	Blob.Write<GLuint>(0);
+	Blob.Write<GLuint>(0); // Count
 
 	WorkItemsSSBO.Initialize(Blob.Data(), TotalSize);
 	WorkItemsSSBO.AttachToBlock(CSGCullingProgram, "WorkItemsBlock");
@@ -106,6 +109,8 @@ StatusCode CullingPass::Setup()
 	SetupPositiveSpace();
 	SetupActiveRegions();
 	SetupWorkItemsBlock();
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+	glFlush();
 
 	return StatusCode::PASS;
 }

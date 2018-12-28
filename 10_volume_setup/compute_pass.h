@@ -26,6 +26,7 @@ struct Bounds
 
 struct ActiveRegion
 {
+	GLuint TileID;
 	GLfloat StartDepth;
 	GLfloat EndDepth;
 	GLint NextRegion;
