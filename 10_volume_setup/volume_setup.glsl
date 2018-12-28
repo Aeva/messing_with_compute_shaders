@@ -9,12 +9,6 @@
 #define TILE_SIZE 4
 #define WAVE_SIZE = 16
 
-layout(std140) uniform ScreenBlock
-{
-	uint ScreenWidth;
-	uint ScreenHeight;
-};
-
 
 struct Bounds
 {

@@ -3,7 +3,6 @@
 #include "errors.h"
 #include "gl_boilerplate.h"
 #include "10_volume_setup/compute_pass.h"
-#include "20_volume_draw/gfx_pass.h"
 
 #if RENDERDOC_CAPTURE_AND_QUIT
 #include "renderdoc.h"
@@ -136,7 +135,7 @@ StatusCode SetupGLFW()
 StatusCode DemoSetup ()
 {
 	RETURN_ON_FAIL(CullingPass::Setup());
-	RETURN_ON_FAIL(RenderingPass::Setup());
+	//RETURN_ON_FAIL(RenderingPass::Setup());
 
 	// Near depth = 1, Far depth = 0
 	glEnable(GL_DEPTH_TEST);
@@ -153,7 +152,7 @@ void DrawFrame()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	CullingPass::Dispatch();
-	RenderingPass::Draw();
+	//RenderingPass::Draw();
     
 	glfwSwapBuffers(Window);
 	glfwPollEvents();

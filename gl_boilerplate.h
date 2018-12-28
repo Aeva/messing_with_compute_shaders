@@ -21,17 +21,17 @@ struct ShaderProgram
 };
 
 
-template<typename DataLayoutStruct, GLenum Target>
+template<GLenum Target>
 struct StructuredBuffer
 {
 	GLuint BufferID;
 	GLuint BindingPoint;
 
-	void Initialize(DataLayoutStruct* Data, GLuint ArrayElements = 1)
+	void Initialize(void* Data, size_t Bytes)
 	{
 		glGenBuffers(1, &BufferID);
 		glBindBuffer(Target, BufferID);
-		glBufferData(Target, sizeof(DataLayoutStruct) * ArrayElements, Data, GL_STATIC_DRAW);
+		glBufferData(Target, Bytes, Data, GL_STATIC_DRAW);
 		glBindBuffer(Target, 0);
 	}
 	void Bind()
@@ -49,8 +49,7 @@ struct StructuredBuffer
 };
 
 
-template<typename DataLayoutStruct>
-struct UniformBuffer : public StructuredBuffer<DataLayoutStruct, GL_UNIFORM_BUFFER>
+struct UniformBuffer : public StructuredBuffer<GL_UNIFORM_BUFFER>
 {
 	void AttachToBlock(ShaderProgram Program, const char* BlockName)
 	{
@@ -65,8 +64,7 @@ struct UniformBuffer : public StructuredBuffer<DataLayoutStruct, GL_UNIFORM_BUFF
 };
 
 
-template<typename DataLayoutStruct>
-struct ShaderStorageBuffer : public StructuredBuffer<DataLayoutStruct, GL_SHADER_STORAGE_BUFFER>
+struct ShaderStorageBuffer : public StructuredBuffer<GL_SHADER_STORAGE_BUFFER>
 {
 	void AttachToBlock(ShaderProgram Program, const char* BlockName)
 	{
@@ -79,3 +77,4 @@ struct ShaderStorageBuffer : public StructuredBuffer<DataLayoutStruct, GL_SHADER
 #endif
 	}
 };
+

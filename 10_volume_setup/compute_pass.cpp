@@ -1,70 +1,101 @@
 #include "../vector_math.h"
 #include "compute_pass.h"
+#include <vector>
 using namespace CullingPass;
 
 
-const unsigned int RegionCount = 1;
-const unsigned int MaxOutputPlanes = 100;
-
 ShaderProgram CSGCullingProgram;
 
-UniformBuffer<ViewUniforms> ViewUBO;
-UniformBuffer<CullingUniforms> CullingUBO;
-
-ShaderStorageBuffer<CSGRegion> RegionSSBO;
-ShaderStorageBuffer<DrawParams> DrawParamsSSBO;
-ShaderStorageBuffer<OutputVolume> OutputVolumeSSBO;
+ShaderStorageBuffer PositiveSpaceSSBO;
+ShaderStorageBuffer ActiveRegionsSSBO;
+ShaderStorageBuffer WorkItemsSSBO;
 
 
-void SetupCullingUniforms()
+struct BlobBuilder
 {
-	ViewUniforms ViewSetup;
-	const GLfloat ViewOrigin[3] = { 5, 5, 5 };
-	const GLfloat ViewFocus[3] = { 0, 0, 0 };
-	ViewMatrix(ViewSetup.WorldToView, ViewOrigin, ViewFocus);
-	PerspectiveMatrix(ViewSetup.Projection);
-	PrintMatrix(ViewSetup.WorldToView, "WorldToView");
-	PrintMatrix(ViewSetup.Projection, "Projection");
-	ViewUBO.Initialize(&ViewSetup);
-	ViewUBO.AttachToBlock(CSGCullingProgram, "ViewUniformsBlock");
+	std::vector<char> Blob;
+	size_t Seek;
+	BlobBuilder(size_t Size, char ClearValue=0xFF)
+	{
+		Seek = 0;
+		Blob.resize(Size, ClearValue);
+	}
+	template<typename T>
+	T* Advance()
+	{
+		T* Handle = reinterpret_cast<T*>(Blob.data() + Seek);
+		Seek += sizeof(T);
+		return Handle;
+	}
+	template<typename T>
+	void Write(T Value)
+	{
+		*Advance<T>() = Value;
+	}
+	void* Data()
+	{
+		return reinterpret_cast<void*>(Blob.data());
+	}
+};
 
-	CullingUniforms CullingSetup;
-	CullingSetup.RegionCount = RegionCount;
-	CullingUBO.Initialize(&CullingSetup);
-	CullingUBO.AttachToBlock(CSGCullingProgram, "CullingUniformsBlock");
+
+void FillSphere(Bounds &Data, GLfloat X, GLfloat Y, GLfloat Z, GLfloat Radius)
+{
+	Data.Center[0] = X;
+	Data.Center[1] = Y;
+	Data.Center[2] = Z;
+	Data.Extent[0] = Radius;
+	Data.Extent[1] = Radius;
+	Data.Extent[2] = Radius;
+	Data.Extent[3] = Radius;
 }
 
 
-void SetupCullingAABBs()
+void SetupPositiveSpace()
 {
-	CSGRegion TestData;
-	TestData.BoundsMin[0] = -1;
-	TestData.BoundsMin[1] = -1;
-	TestData.BoundsMin[2] = -1;
-	TestData.BoundsMax[0] = 1;
-	TestData.BoundsMax[1] = 1;
-	TestData.BoundsMax[2] = 1;
-	RegionSSBO.Initialize(&TestData);
-	RegionSSBO.AttachToBlock(CSGCullingProgram, "RegionDataBlock");
+	const size_t Count = 1;
+	const size_t PrefixSize = sizeof(GLuint);
+	const size_t ArraySize = sizeof(Bounds) * Count;
+	const size_t TotalSize = PrefixSize + ArraySize;
+
+	BlobBuilder Blob(TotalSize);
+	Blob.Write<GLuint>(Count);
+	FillSphere(*Blob.Advance<Bounds>(), 200, 200, 200, 100);
+
+	PositiveSpaceSSBO.Initialize(Blob.Data(), TotalSize);
+	PositiveSpaceSSBO.AttachToBlock(CSGCullingProgram, "PositiveSpaceBlock");
 }
 
 
-void SetupIndirectRenderingParams()
+void SetupActiveRegions()
 {
-	DrawParams IndirectParams;
-	IndirectParams.VertexCount = 4;
-	IndirectParams.InstanceCount = 0;
-	IndirectParams.First = 0;
-	IndirectParams.BaseInstance = 0;
-	DrawParamsSSBO.Initialize(&IndirectParams);
-	DrawParamsSSBO.AttachToBlock(CSGCullingProgram, "IndirectDrawParamsBlock");
+	// This happens to work out to a maximum of 16 region entries per tile,
+	// but this is a linked list, and most tiles shouldn't need that many...?
+	const int MaxCount = ScreenWidth * ScreenHeight;
+	const size_t PrefixSize = sizeof(GLuint);
+	const size_t ArraySize = sizeof(ActiveRegion) * MaxCount;
+	const size_t TotalSize = PrefixSize + ArraySize;
+
+	BlobBuilder Blob(TotalSize);
+	Blob.Write<GLuint>(0);
+
+	ActiveRegionsSSBO.Initialize(Blob.Data(), TotalSize);
+	ActiveRegionsSSBO.AttachToBlock(CSGCullingProgram, "ActiveRegionsBlock");
 }
 
 
-void SetupSliceOutput()
+void SetupWorkItemsBlock()
 {
-	OutputVolumeSSBO.Initialize(nullptr, MaxOutputPlanes);
-	OutputVolumeSSBO.AttachToBlock(CSGCullingProgram, "OutputVolumesBlock");
+	const int MaxCount = ScreenWidth * ScreenHeight;
+	const size_t PrefixSize = sizeof(GLuint);
+	const size_t ArraySize = sizeof(GLuint) * MaxCount;
+	const size_t TotalSize = PrefixSize + ArraySize;
+
+	BlobBuilder Blob(TotalSize);
+	Blob.Write<GLuint>(0);
+
+	WorkItemsSSBO.Initialize(Blob.Data(), TotalSize);
+	WorkItemsSSBO.AttachToBlock(CSGCullingProgram, "WorkItemsBlock");
 }
 
 
@@ -72,10 +103,9 @@ StatusCode CullingPass::Setup()
 {
 	RETURN_ON_FAIL(CSGCullingProgram.ComputeCompile("10_volume_setup/volume_setup.glsl.built"));
 
-	SetupCullingUniforms();
-	SetupCullingAABBs();
-	SetupSliceOutput();
-	SetupIndirectRenderingParams();
+	SetupPositiveSpace();
+	SetupActiveRegions();
+	SetupWorkItemsBlock();
 
 	return StatusCode::PASS;
 }
@@ -84,18 +114,13 @@ StatusCode CullingPass::Setup()
 void CullingPass::Dispatch()
 {
 	glUseProgram(CSGCullingProgram.ProgramID);
-	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
-
-	ViewUBO.BindBlock();
-	CullingUBO.BindBlock();
-
-	RegionSSBO.BindBlock();
-	OutputVolumeSSBO.BindBlock();
-	DrawParamsSSBO.BindBlock();
-
-	glDispatchCompute(FAST_DIV_ROUND_UP(RegionCount, 64), 1, 1);
+	PositiveSpaceSSBO.BindBlock();
+	ActiveRegionsSSBO.BindBlock();
+	WorkItemsSSBO.BindBlock();
+	glDispatchCompute(
+		FAST_DIV_ROUND_UP(ScreenWidth, 4),
+		FAST_DIV_ROUND_UP(ScreenHeight, 4),
+		1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-	DrawParamsSSBO.Bind(GL_DRAW_INDIRECT_BUFFER);
 }

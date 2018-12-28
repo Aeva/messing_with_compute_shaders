@@ -12,39 +12,15 @@ namespace CullingPass
 
 struct ScreenUniforms
 {
-	GLuint ScreenWidth;
-	GLuint ScreenHeight;
+	GLuint Width;
+	GLuint Height;
 };
 
 
 struct Bounds
 {
-	GLfloat Center[4];
+	GLfloat Center[3];
 	GLfloat Extent[4];
-
-	// Sphere variant
-	Bounds(GLfloat InCenter[3], GLfloat InRadius)
-	{
-		for (int i=0; i<3; ++i)
-		{
-			Center[i] = InCenter[i];
-			Extent[i] = InRadius;
-		}
-		Center[3] = 0;
-		Extent[3] = InRadius;
-	}
-
-	// AABB variant
-	Bounds(GLfloat InCenter[3], GLfloat InExtent[3])
-	{
-		for (int i=0; i<3; ++i)
-		{
-			Center[i] = InCenter[i];
-			Extent[i] = InExtent[i];
-		}
-		Center[3] = 0;
-		Extent[3] = 0;
-	}
 };
 
 
