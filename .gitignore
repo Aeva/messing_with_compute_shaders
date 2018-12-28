@@ -3,3 +3,4 @@ librenderdoc.so
 renderdoc.h
 *.built
 __pycache__
+*.pyc

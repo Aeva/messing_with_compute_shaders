@@ -6,99 +6,146 @@
 #extension GL_ARB_shading_language_420pack : require
 
 
-layout(std140) uniform ViewUniformsBlock
+#define TILE_SIZE 4
+#define WAVE_SIZE = 16
+
+layout(std140) uniform ScreenBlock
 {
-	mat4 WorldToView;
-	mat4 Projection;
+	uint ScreenWidth;
+	uint ScreenHeight;
 };
 
 
-layout(std140) uniform CullingUniformsBlock
+struct Bounds
 {
-	uint RegionCount;
+	// When the bounds describes a sphere, all four components of Extent are the radius.
+	// When the bounds describes an AABB, the alpha component of Extent is zero.
+	vec3 Center;
+	vec4 Extent;
 };
-
-
-struct CSGRegion
+layout(std430) buffer PositiveSpaceBlock
 {
-	vec3 BoundsMin;
-	vec3 BoundsMax;
+	uint Count;
+	Bounds Data[];
+} PositiveSpace;
+
+
+struct ActiveRegion
+{
+	float StartDepth;
+	float EndDepth;
+	int NextRegion;
 };
-layout(std430) buffer RegionDataBlock
+layout(std430) buffer ActiveRegionsBlock
 {
-	CSGRegion Regions[];
-};
+	uint Count;
+	ActiveRegion Data[];
+} ActiveRegions;
 
 
-struct OutputVolume
+const uint LANE_OFFSET = 28;
+const uint LANE_MASK = 0xF << LANE_OFFSET;
+const uint AGE_OFFSET = 20;
+const uint AGE_MASK = 0xFF << AGE_OFFSET;
+const uint WORK_MASK = ~(LANE_MASK | AGE_MASK);
+
+// Work items are packed like so:
+// The highest 4 bits are the Lane index.
+// The next 8 bits are the current iteration on the current work item.
+// The lowest 20 bits are the index of the current work item.
+layout(std430) buffer WorkItemsBlock
 {
-	vec4 ViewMin;
-	vec4 ViewMax;
-	uint RegionID;
-};
-layout(std430) buffer OutputVolumesBlock
+	uint Count;
+	uint PackedData[];
+} WorkItems;
+
+
+bool TestPointInSphere(vec3 Point, vec3 SphereCenter, float SphereRadius)
 {
-	OutputVolume OutputVolumes[];
-};
+	vec3 Fnord = Point - SphereCenter;
+	return dot(Fnord, Fnord) <= SphereRadius * SphereRadius;
+}
 
 
-layout(std430) buffer IndirectDrawParamsBlock
+bool TestAABBSphereOverlap(vec3 BoxCenter, vec3 BoxExtent, vec3 SphereCenter, float SphereRadius)
 {
-	uint VertexCount;
-	uint InstanceCount;
-	uint First;
-	uint BaseInstance;
-} IndirectDrawParams;
+	// Find the point in the AABB which is closest to the Sphere, and then
+	// do a point-in-sphere test on it to determine overlap.
+	vec3 RelativeCenter = abs(SphereCenter - BoxCenter);
+	return TestPointInSphere(min(BoxExtent, RelativeCenter), RelativeCenter, SphereRadius);
+}
 
 
-layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+bool TestAABBOverlap(vec3 BoxCenter1, vec3 BoxExtent1, vec3 BoxCenter2, vec3 BoxExtent2)
+{
+	return all(lessThanEqual(abs(BoxCenter1 - BoxCenter2), (BoxExtent1 + BoxCenter2)));
+}
+
+
+// Group size is arbitrary.
+// Each thread is a tile.
+layout(local_size_x = 4, local_size_y = 4, local_size_z = 1) in;
 void main()
 {
-	if (gl_GlobalInvocationID.x == 0)
-	{
-		IndirectDrawParams.InstanceCount = 0;
-	}
-	memoryBarrierBuffer();
-	if (gl_GlobalInvocationID.x < RegionCount)
-	{
-		const CSGRegion Region = Regions[gl_GlobalInvocationID.x];
+	const vec3 TileCenter = vec3(vec2(gl_GlobalInvocationID.xy*TILE_SIZE) + vec2(1.5, 1.5), 512);
+	const vec3 TileExtent = vec3(vec2(TILE_SIZE, TILE_SIZE) * 0.5, 512);
 	
-		const float X1 = Region.BoundsMin.x;
-		const float Y1 = Region.BoundsMin.y;
-		const float Z1 = Region.BoundsMin.z;
-		const float X2 = Region.BoundsMax.x;
-		const float Y2 = Region.BoundsMax.y;
-		const float Z2 = Region.BoundsMax.z;
+	int HeadChunk = -1;
+	int LastChunk = -1;
+	float StartDepth = 0;
+	float EndDepth = 0;
 
-		const vec4 Corners[8] = {
-			vec4(X1, Y1, Z1, 1),
-			vec4(X1, Y1, Z2, 1),
-			vec4(X1, Y2, Z1, 1),
-			vec4(X1, Y2, Z2, 1),
-			vec4(X2, Y1, Z1, 1),
-			vec4(X2, Y1, Z2, 1),
-			vec4(X2, Y2, Z1, 1),
-			vec4(X2, Y2, Z2, 1)
-		};
-
-		vec4 ViewMin = WorldToView * Corners[0];
-		vec4 ViewMax = ViewMin;
-		for (int i=1; i<8; ++i)
+	// Generously assuming that the bounds list is sorted front to back.
+	for (uint i=0; i<PositiveSpace.Count; ++i)
+	{
+		const Bounds Test = PositiveSpace.Data[i];
+		const bool bAccepted = TestAABBOverlap(TileCenter, TileExtent, Test.Center, Test.Extent.xyz);
+		if (bAccepted)
 		{
-			vec4 Corner = WorldToView * Corners[i];
-			ViewMin = min(Corner, ViewMin);
-			ViewMax = max(Corner, ViewMax);
+			// This could be tightened a bit for spheres.
+			const float Near = max(0, Test.Center.z - Test.Extent.z);
+			const float Far = min(1024, Test.Center.z + Test.Extent.z);
+
+			if (EndDepth == 0)
+			{
+				StartDepth = Near;
+				EndDepth = Far;
+			}
+			else if (Near <= EndDepth && Far > EndDepth)
+			{
+				EndDepth = Far;
+			}
+			else
+			{
+				const int WriteIndex = int(atomicAdd(ActiveRegions.Count, 1));
+				ActiveRegions.Data[WriteIndex].StartDepth = StartDepth;
+				ActiveRegions.Data[WriteIndex].EndDepth = EndDepth;
+				ActiveRegions.Data[WriteIndex].NextRegion = -1;
+				if (LastChunk == -1)
+				{
+					HeadChunk = WriteIndex;
+				}
+				else
+				{
+					ActiveRegions.Data[LastChunk].NextRegion = WriteIndex;
+				}
+				LastChunk = WriteIndex;
+
+				StartDepth = Near;
+				EndDepth = Far;
+			}
 		}
+	}
 
-		bool bCullingPassed = ViewMax.z < 0;
-
-		if (bCullingPassed)
+	if (HeadChunk > -1)
+	{
+		const uint Lanes = TILE_SIZE*TILE_SIZE;
+		const uint WriteIndex = atomicAdd(WorkItems.Count, Lanes);
+		for (uint i=0; i<Lanes; ++i)
 		{
-			uint NewPlanes = 1;
-			const uint Seek = atomicAdd(IndirectDrawParams.InstanceCount, NewPlanes);
-			OutputVolumes[Seek].ViewMin = ViewMin;
-			OutputVolumes[Seek].ViewMax = ViewMax;
-			OutputVolumes[Seek].RegionID = gl_GlobalInvocationID.x;
+			const uint LanePart = (i<<LANE_OFFSET) & LANE_MASK;
+			const uint WorkPart = uint(HeadChunk) & WORK_MASK;
+			WorkItems.PackedData[WriteIndex] = LanePart | WorkPart;
 		}
 	}
 }
