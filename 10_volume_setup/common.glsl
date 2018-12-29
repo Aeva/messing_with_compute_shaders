@@ -43,7 +43,7 @@ layout(std430) buffer ActiveRegionsBlock
 } ActiveRegions;
 
 
-layout(rg32i) uniform iimage2D TileListHead;
+layout(rg32i, binding = 0) uniform iimage2D TileListHead;
 
 /*
 const uint LANE_OFFSET = 28;

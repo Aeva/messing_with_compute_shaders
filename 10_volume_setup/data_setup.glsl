@@ -24,7 +24,8 @@ void main()
 		// This could be tightened a bit for spheres.
 		const float Near = clamp(Test.Center.z - Test.Extent.z, 0, 1024);
 		const float Far = clamp(Test.Center.z + Test.Extent.z, 0, 1024);
-		const bool bAccepted = Far >= 0 && TestAABBOverlap(TileCenter, TileExtent, Test.Center.xyz, Test.Extent.xyz);
+		//const bool bAccepted = Far >= 0 && TestAABBOverlap(TileCenter, TileExtent, Test.Center.xyz, Test.Extent.xyz);
+		const bool bAccepted = Far >= 0 && TestAABBSphereOverlap(TileCenter, TileExtent, Test.Center.xyz, Test.Extent.w);
 		if (bAccepted)
 		{
 			if (EndDepth < 0)
