@@ -137,15 +137,8 @@ StatusCode SetupGLFW()
 StatusCode DemoSetup ()
 {
 	RETURN_ON_FAIL(CullingPass::Setup());
-	//RETURN_ON_FAIL(RenderingPass::Setup());
 
-	// Near depth = 1, Far depth = 0
-	glEnable(GL_DEPTH_TEST);
-	glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
 	glClearDepth(0);
-	glDepthFunc(GL_GREATER);
-
-	glDisable(GL_CULL_FACE);
 	return StatusCode::PASS;
 }
 
@@ -170,15 +163,18 @@ int main()
 	QUIT_ON_FAIL(DemoSetup());
 
 #if RENDERDOC_CAPTURE_AND_QUIT
-	rdoc_api->StartFrameCapture(NULL, NULL);
-#else
-	while(!glfwWindowShouldClose(Window) && !GetHaltAndCatchFire())
-#endif
+	if (rdoc_api != nullptr)
 	{
-		DrawFrame();
-	}
+		rdoc_api->StartFrameCapture(NULL, NULL);
+#else
+		while(!glfwWindowShouldClose(Window) && !GetHaltAndCatchFire())
+#endif
+		{
+			DrawFrame();
+		}
 #if RENDERDOC_CAPTURE_AND_QUIT
-	rdoc_api->EndFrameCapture(NULL, NULL);
+		rdoc_api->EndFrameCapture(NULL, NULL);
+	}
 #endif
 
 	glfwDestroyWindow(Window);

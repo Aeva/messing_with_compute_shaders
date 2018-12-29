@@ -15,6 +15,10 @@ namespace RayCaster
 	ShaderStorageBlock PositiveSpaceBlock;
 	ShaderStorageBlock ActiveRegionsBlock;
 }
+namespace SplatPass
+{
+	ShaderProgram Program;
+}
 
 Buffer PositiveSpaceBuffer;
 Buffer ActiveRegionsBuffer;
@@ -123,10 +127,19 @@ StatusCode CullingPass::Setup()
 {
 	RETURN_ON_FAIL(DataSetup::Program.ComputeCompile("10_volume_setup/data_setup.glsl.built"));
 	RETURN_ON_FAIL(RayCaster::Program.ComputeCompile("10_volume_setup/raycaster.glsl.built"));
+	RETURN_ON_FAIL(SplatPass::Program.RasterizationCompile("10_volume_setup/splat.vert", "10_volume_setup/splat.frag"));
 
 	SetupPositiveSpace();
 	SetupActiveRegions();
 	SetupWorkItems();
+
+	// cheese opengl into letting us draw a full screen triangle without any data
+  	GLuint vao;
+  	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
+
+	glDisable(GL_CULL_FACE);
+	glDisable(GL_DEPTH_TEST);
 
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
@@ -156,4 +169,9 @@ void CullingPass::Dispatch()
 	glBindSampler(1, Sampler);
 	glDispatchCompute(ScreenWidth, ScreenHeight, 1);
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+	glUseProgram(SplatPass::Program.ProgramID);
+	glBindTextureUnit(0, SomeUAV2);
+	glBindSampler(0, Sampler);
+	glDrawArrays(GL_TRIANGLES, 0, 3);
 }
