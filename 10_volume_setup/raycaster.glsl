@@ -13,7 +13,7 @@ void main()
 {
 	// Every pixel should have a group dispatched, so we can determine the
 	// tile ID easily enough.
-	const uvec2 TileXY = gl_WorkGroupID.xy % TILE_SIZE;
+	const uvec2 TileXY = gl_WorkGroupID.xy / TILE_SIZE;
 	const vec4 TileInfo = imageLoad(TileListHead, ivec2(TileXY));
 	const int ListDepth = int(TileInfo.y);
 	const vec2 ScreenXY = vec2(gl_WorkGroupID.xy);
@@ -53,11 +53,7 @@ void main()
 
 	if (SampleResults == 0 && SampleIndex == 0)
 	{
-		//imageStore(RenderResults, ivec2(gl_WorkGroupID.xy), vec4(0, 0, 0, 0));
-		//float a = ActiveRegions.Data[int(TileInfo.x)].StartDepth;
-		//float b = ActiveRegions.Data[int(TileInfo.x)].EndDepth;
-
-		imageStore(RenderResults, ivec2(gl_WorkGroupID.xy), vec4(TileInfo.xy, 0, 0));
+		imageStore(RenderResults, ivec2(gl_WorkGroupID.xy), vec4(0, 0, 0, 0));
 	}
 	if ((SampleResults & LowerThanMe) == SampleBit)
 	{
