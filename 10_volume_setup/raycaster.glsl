@@ -1,6 +1,7 @@
 #include "10_volume_setup/common.glsl"
 
-layout(rgba32f, binding = 1) uniform image2D RenderResults;
+layout(rg32i, binding = 0) uniform readonly iimage2D TileListHead;
+layout(rgba32f, binding = 1) uniform writeonly image2D RenderResults;
 
 shared uint SampleResults;
 
@@ -52,7 +53,11 @@ void main()
 
 	if (SampleResults == 0 && SampleIndex == 0)
 	{
-		imageStore(RenderResults, ivec2(gl_WorkGroupID.xy), vec4(0, 0, 0, 0));
+		//imageStore(RenderResults, ivec2(gl_WorkGroupID.xy), vec4(0, 0, 0, 0));
+		//float a = ActiveRegions.Data[int(TileInfo.x)].StartDepth;
+		//float b = ActiveRegions.Data[int(TileInfo.x)].EndDepth;
+
+		imageStore(RenderResults, ivec2(gl_WorkGroupID.xy), vec4(TileInfo.xy, 0, 0));
 	}
 	if ((SampleResults & LowerThanMe) == SampleBit)
 	{

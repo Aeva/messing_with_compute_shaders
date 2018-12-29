@@ -3,15 +3,25 @@
 #include <vector>
 using namespace CullingPass;
 
+namespace DataSetup
+{
+	ShaderProgram Program;
+	ShaderStorageBlock PositiveSpaceBlock;
+	ShaderStorageBlock ActiveRegionsBlock;
+}
+namespace RayCaster
+{
+	ShaderProgram Program;
+	ShaderStorageBlock PositiveSpaceBlock;
+	ShaderStorageBlock ActiveRegionsBlock;
+}
 
-ShaderProgram TestDataSetupProgram;
-ShaderProgram RayCastingProgram;
+Buffer PositiveSpaceBuffer;
+Buffer ActiveRegionsBuffer;
 
-ShaderStorageBuffer PositiveSpaceSSBO;
-ShaderStorageBuffer ActiveRegionsSSBO;
-//ShaderStorageBuffer WorkItemsSSBO;
 GLuint SomeUAV;
 GLuint SomeUAV2;
+GLuint Sampler;
 
 
 struct BlobBuilder
@@ -71,9 +81,9 @@ void SetupPositiveSpace()
 	FillSphere(*Blob.Advance<Bounds>(), 200, 200, 200, 100);
 	FillSphere(*Blob.Advance<Bounds>(), 300, 200, 200, 50);
 
-	PositiveSpaceSSBO.Initialize(Blob.Data(), TotalSize);
-	PositiveSpaceSSBO.AttachToBlock(TestDataSetupProgram, "PositiveSpaceBlock");
-	PositiveSpaceSSBO.AttachToBlock(RayCastingProgram, "PositiveSpaceBlock");
+	PositiveSpaceBuffer.Initialize(Blob.Data(), TotalSize);
+	DataSetup::PositiveSpaceBlock.Initialize(DataSetup::Program, "PositiveSpaceBlock");
+	RayCaster::PositiveSpaceBlock.Initialize(RayCaster::Program, "PositiveSpaceBlock");
 }
 
 
@@ -82,64 +92,43 @@ void SetupActiveRegions()
 	// This happens to work out to a maximum of 16 region entries per tile,
 	// but this is a linked list, and most tiles shouldn't need that many...?
 	const int MaxCount = ScreenWidth * ScreenHeight;
-	const size_t PrefixSize = sizeof(GLuint) * 2;
+	const size_t PrefixSize = sizeof(GLuint);
 	const size_t ArraySize = sizeof(ActiveRegion) * MaxCount;
 	const size_t TotalSize = PrefixSize + ArraySize;
 
 	BlobBuilder Blob(TotalSize);
-	Blob.Write<GLuint>(0); // Count
-	Blob.Write<GLuint>(0); // LongestPath
-
-	ActiveRegionsSSBO.Initialize(Blob.Data(), TotalSize);
-	ActiveRegionsSSBO.AttachToBlock(TestDataSetupProgram, "ActiveRegionsBlock");
-	ActiveRegionsSSBO.AttachToBlock(RayCastingProgram, "ActiveRegionsBlock");
+	ActiveRegionsBuffer.Initialize(Blob.Data(), TotalSize);
+	DataSetup::ActiveRegionsBlock.Initialize(DataSetup::Program, "ActiveRegionsBlock");
+	RayCaster::ActiveRegionsBlock.Initialize(RayCaster::Program, "ActiveRegionsBlock");
 }
 
 
-void SetupWorkItemsBlock()
+void SetupWorkItems()
 {
-	/*
-	const int MaxCount = ScreenWidth * ScreenHeight;
-	const size_t PrefixSize = sizeof(GLuint);
-	const size_t ArraySize = sizeof(GLuint) * MaxCount;
-	const size_t TotalSize = PrefixSize + ArraySize;
+	glCreateTextures(GL_TEXTURE_2D, 1, &SomeUAV);
+	glTextureStorage2D(SomeUAV, 1, GL_RG32I, FAST_DIV_ROUND_UP(ScreenWidth, 4), FAST_DIV_ROUND_UP(ScreenHeight, 4));
 
-	BlobBuilder Blob(TotalSize);
-	Blob.Write<GLuint>(0); // Count
+	glCreateTextures(GL_TEXTURE_2D, 1, &SomeUAV2);
+	glTextureStorage2D(SomeUAV2, 1, GL_RGBA32F, ScreenWidth, ScreenHeight);
 
-	WorkItemsSSBO.Initialize(Blob.Data(), TotalSize);
-	WorkItemsSSBO.AttachToBlock(TestDataSetupProgram, "WorkItemsBlock");
-	*/
-	glGenTextures(1, &SomeUAV);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, SomeUAV);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RG32I, FAST_DIV_ROUND_UP(ScreenWidth, 4), FAST_DIV_ROUND_UP(ScreenHeight, 4), 0, GL_RG_INTEGER, GL_INT, NULL);
-
-	glGenTextures(1, &SomeUAV2);
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, SomeUAV2);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, ScreenWidth, ScreenHeight, 0, GL_RGBA, GL_FLOAT, NULL);
+	glCreateSamplers(1, &Sampler);
+	glSamplerParameteri(Sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glSamplerParameteri(Sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glSamplerParameteri(Sampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glSamplerParameteri(Sampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 }
 
 
 StatusCode CullingPass::Setup()
 {
-	RETURN_ON_FAIL(TestDataSetupProgram.ComputeCompile("10_volume_setup/data_setup.glsl.built"));
-	RETURN_ON_FAIL(RayCastingProgram.ComputeCompile("10_volume_setup/raycaster.glsl.built"));
+	RETURN_ON_FAIL(DataSetup::Program.ComputeCompile("10_volume_setup/data_setup.glsl.built"));
+	RETURN_ON_FAIL(RayCaster::Program.ComputeCompile("10_volume_setup/raycaster.glsl.built"));
 
 	SetupPositiveSpace();
 	SetupActiveRegions();
-	SetupWorkItemsBlock();
+	SetupWorkItems();
+
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-	glFlush();
 
 	return StatusCode::PASS;
 }
@@ -147,21 +136,24 @@ StatusCode CullingPass::Setup()
 
 void CullingPass::Dispatch()
 {
-	glUseProgram(TestDataSetupProgram.ProgramID);
-	PositiveSpaceSSBO.BindBlock(0);
-	ActiveRegionsSSBO.BindBlock(0);
-	glBindImageTexture(0, SomeUAV, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RG32I);
+	glUseProgram(DataSetup::Program.ProgramID);
+	DataSetup::PositiveSpaceBlock.Attach(PositiveSpaceBuffer);
+	DataSetup::ActiveRegionsBlock.Attach(ActiveRegionsBuffer);
+	glBindImageTexture(0, SomeUAV, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RG32I);
+	glBindSampler(0, Sampler);
 	glDispatchCompute(
 		FAST_DIV_ROUND_UP(ScreenWidth, 4),
 		FAST_DIV_ROUND_UP(ScreenHeight, 4),
 		1);
-	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-	glUseProgram(RayCastingProgram.ProgramID);
-	PositiveSpaceSSBO.BindBlock(1);
-	ActiveRegionsSSBO.BindBlock(1);
-	glBindImageTexture(0, SomeUAV, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RG32I);
-	glBindImageTexture(1, SomeUAV2, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+	glUseProgram(RayCaster::Program.ProgramID);
+	RayCaster::PositiveSpaceBlock.Attach(PositiveSpaceBuffer);
+	RayCaster::ActiveRegionsBlock.Attach(ActiveRegionsBuffer);
+	glBindImageTexture(0, SomeUAV, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RG32I);
+	glBindImageTexture(1, SomeUAV2, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+	glBindSampler(0, Sampler);
+	glBindSampler(1, Sampler);
 	glDispatchCompute(ScreenWidth, ScreenHeight, 1);
-	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }

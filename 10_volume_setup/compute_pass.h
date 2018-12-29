@@ -10,13 +10,6 @@ namespace CullingPass
 }
 
 
-struct ScreenUniforms
-{
-	GLuint Width;
-	GLuint Height;
-};
-
-
 struct Bounds
 {
 	GLfloat Center[4];
@@ -26,18 +19,8 @@ struct Bounds
 
 struct ActiveRegion
 {
-	GLuint TileID;
 	GLfloat StartDepth;
 	GLfloat EndDepth;
 	GLint NextRegion;
-};
-
-
-struct DrawParams
-{
-	GLuint VertexCount;
-	GLuint InstanceCount;
-	GLuint First;
-	GLuint BaseInstance;
 };
 

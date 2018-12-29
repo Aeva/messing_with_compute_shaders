@@ -1,5 +1,9 @@
 #include "10_volume_setup/common.glsl"
 
+
+layout(rg32i, binding = 0) uniform writeonly iimage2D TileListHead;
+
+
 // Group size is arbitrary.
 // Each thread is a tile.
 layout(local_size_x = 4, local_size_y = 4, local_size_z = 1) in;
@@ -8,7 +12,6 @@ void main()
 	const vec3 TileMin = vec3(vec2(gl_GlobalInvocationID.xy*TILE_SIZE), 0);
 	const vec3 TileExtent = vec3(TILE_SIZE, TILE_SIZE, 1024) * 0.5;
 	const vec3 TileCenter = TileMin + TileExtent;
-	const uint TileID = ((gl_GlobalInvocationID.x << TILE_X_OFFSET) & TILE_X_MASK) | (gl_GlobalInvocationID.y & TILE_Y_MASK);
 
 	int HeadChunk = -1;
 	int LastChunk = -1;
@@ -41,8 +44,8 @@ void main()
 			else
 			{
 				++PathDepth;
+				memoryBarrierBuffer();
 				const int WriteIndex = int(atomicAdd(ActiveRegions.Count, 1));
-				ActiveRegions.Data[WriteIndex].TileID = TileID;
 				ActiveRegions.Data[WriteIndex].StartDepth = StartDepth;
 				ActiveRegions.Data[WriteIndex].EndDepth = EndDepth;
 				ActiveRegions.Data[WriteIndex].NextRegion = -1;
@@ -65,8 +68,8 @@ void main()
 	if (EndDepth > -1)
 	{
 		++PathDepth;
+		memoryBarrierBuffer();
 		const int WriteIndex = int(atomicAdd(ActiveRegions.Count, 1));
-		ActiveRegions.Data[WriteIndex].TileID = TileID;
 		ActiveRegions.Data[WriteIndex].StartDepth = StartDepth;
 		ActiveRegions.Data[WriteIndex].EndDepth = EndDepth;
 		ActiveRegions.Data[WriteIndex].NextRegion = -1;
@@ -81,18 +84,5 @@ void main()
 	}
 
 	imageStore(TileListHead, ivec2(gl_GlobalInvocationID.xy), ivec4(HeadChunk, PathDepth, 0, 0));
-	/*
-	if (HeadChunk > -1)
-	{
-		const uint Lanes = TILE_SIZE*TILE_SIZE;
-		const uint WriteIndex = atomicAdd(WorkItems.Count, Lanes);
-		for (uint i=0; i<Lanes; ++i)
-		{
-			const uint LanePart = (i<<LANE_OFFSET) & LANE_MASK;
-			const uint WorkPart = uint(HeadChunk) & WORK_MASK;
-			WorkItems.PackedData[WriteIndex+i] = LanePart | WorkPart;
-		}
-		atomicMax(ActiveRegions.LongestPath, PathDepth);
-	}
-	*/
+	memoryBarrierImage();
 }

@@ -86,6 +86,8 @@ StatusCode SetupGLFW()
 	RequireExtension("GL_ARB_shader_image_load_store");
 	RequireExtension("GL_ARB_gpu_shader5");
 	RequireExtension("GL_ARB_clip_control");
+	RequireExtension("GL_ARB_direct_state_access");
+	RequireExtension("GL_ARB_buffer_storage");
 
 #if DEBUG_BUILD
 	GLint ContextFlags;

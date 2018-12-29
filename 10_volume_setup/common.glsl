@@ -30,7 +30,6 @@ const uint TILE_Y_MASK = 0xFFFF;
 // low 16 bits are the Y coordinate.
 struct ActiveRegion
 {
-	uint TileID;
 	float StartDepth;
 	float EndDepth;
 	int NextRegion;
@@ -38,30 +37,8 @@ struct ActiveRegion
 layout(std430) buffer ActiveRegionsBlock
 {
 	uint Count;
-	uint LongestPath;
 	ActiveRegion Data[];
 } ActiveRegions;
-
-
-layout(rg32i, binding = 0) uniform iimage2D TileListHead;
-
-/*
-const uint LANE_OFFSET = 28;
-const uint LANE_MASK = 0xF << LANE_OFFSET;
-const uint AGE_OFFSET = 20;
-const uint AGE_MASK = 0xFF << AGE_OFFSET;
-const uint WORK_MASK = ~(LANE_MASK | AGE_MASK);
-
-// Work items are packed like so:
-// The highest 4 bits are the Lane index.
-// The next 8 bits are the current iteration on the current work item.
-// The lowest 20 bits are the index of the current work item.
-layout(std430) buffer WorkItemsBlock
-{
-	uint Count;
-	uint PackedData[];
-} WorkItems;
-*/
 
 
 bool TestPointInAABB(vec3 Point, vec3 BoxCenter, vec3 BoxExtent)
