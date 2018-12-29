@@ -19,7 +19,7 @@ void main()
 	const vec2 ScreenXY = vec2(gl_WorkGroupID.xy);
 	const uint SampleIndex = gl_LocalInvocationID.x;
 	const uint SampleBit = 1 << SampleIndex;
-	const uint LowerThanMe = ~(0xF << SampleIndex + 1) & 0xF;
+	const uint LowerThanMe = 0xFFFF >> (15 - SampleIndex);
 
 	if (SampleIndex == 0)
 	{
