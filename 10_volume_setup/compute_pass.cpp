@@ -67,7 +67,7 @@ void SetupPositiveSpace()
 	Blob.Write<GLuint>(0xFF); // Padding to align the array correctly.
 	Blob.Write<GLuint>(0xFF);
 	Blob.Write<GLuint>(0xFF);
-	FillSphere(*Blob.Advance<Bounds>(), 300, 300, 50, 20);
+	FillSphere(*Blob.Advance<Bounds>(), 300, 250, 50, 20);
 	FillSphere(*Blob.Advance<Bounds>(), 200, 200, 200, 100);
 	FillSphere(*Blob.Advance<Bounds>(), 300, 200, 200, 50);
 

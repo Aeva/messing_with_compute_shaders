@@ -74,6 +74,10 @@ void main()
 		{
 			HeadChunk = WriteIndex;
 		}
+		else
+		{
+			ActiveRegions.Data[LastChunk].NextRegion = WriteIndex;
+		}
 	}
 
 	imageStore(TileListHead, ivec2(gl_GlobalInvocationID.xy), ivec4(HeadChunk, PathDepth, 0, 0));
