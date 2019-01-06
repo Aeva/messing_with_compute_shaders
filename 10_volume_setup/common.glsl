@@ -1,12 +1,5 @@
-#version 420
-#extension GL_ARB_compute_shader : require
-#extension GL_ARB_shader_storage_buffer_object : require
-#extension GL_ARB_shader_image_load_store : require
-#extension GL_ARB_gpu_shader5 : require
-#extension GL_ARB_shading_language_420pack : require
 
-
-#define TILE_SIZE 4
+#define TILE_SIZE 2
 
 
 struct Bounds
@@ -16,7 +9,7 @@ struct Bounds
 	vec4 Center;
 	vec4 Extent;
 };
-layout(std430) buffer PositiveSpaceBlock
+layout(std430, binding = 0) buffer PositiveSpaceBlock
 {
 	uint Count;
 	Bounds Data[];
@@ -34,7 +27,7 @@ struct ActiveRegion
 	float EndDepth;
 	int NextRegion;
 };
-layout(std430) buffer ActiveRegionsBlock
+layout(std430, binding = 1) buffer ActiveRegionsBlock
 {
 	uint Count;
 	ActiveRegion Data[];

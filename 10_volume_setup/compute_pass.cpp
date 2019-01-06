@@ -1,32 +1,21 @@
 #include "../vector_math.h"
 #include "compute_pass.h"
 #include <vector>
+#include <iostream>
 using namespace CullingPass;
 
-namespace DataSetup
-{
-	ShaderProgram Program;
-	ShaderStorageBlock PositiveSpaceBlock;
-	ShaderStorageBlock ActiveRegionsBlock;
-}
-namespace RayCaster
-{
-	ShaderProgram Program;
-	ShaderStorageBlock PositiveSpaceBlock;
-	ShaderStorageBlock ActiveRegionsBlock;
-}
-namespace SplatPass
-{
-	ShaderProgram Program;
-}
+ShaderPipeline DataSetup;
+ShaderPipeline RayCaster;
+ShaderPipeline SplatPass;
 
-Buffer PositiveSpaceBuffer;
-Buffer ActiveRegionsBuffer;
+Buffer PositiveSpace;
+Buffer ActiveRegions;
 
 GLuint SomeUAV;
 GLuint SomeUAV2;
 GLuint Sampler;
 
+GLuint TimingQueries[3];
 
 struct BlobBuilder
 {
@@ -85,9 +74,7 @@ void SetupPositiveSpace()
 	FillSphere(*Blob.Advance<Bounds>(), 200, 200, 200, 100);
 	FillSphere(*Blob.Advance<Bounds>(), 300, 200, 200, 50);
 
-	PositiveSpaceBuffer.Initialize(Blob.Data(), TotalSize);
-	DataSetup::PositiveSpaceBlock.Initialize(DataSetup::Program, "PositiveSpaceBlock");
-	RayCaster::PositiveSpaceBlock.Initialize(RayCaster::Program, "PositiveSpaceBlock");
+	PositiveSpace.Initialize(Blob.Data(), TotalSize);
 }
 
 
@@ -101,9 +88,7 @@ void SetupActiveRegions()
 	const size_t TotalSize = PrefixSize + ArraySize;
 
 	BlobBuilder Blob(TotalSize);
-	ActiveRegionsBuffer.Initialize(Blob.Data(), TotalSize);
-	DataSetup::ActiveRegionsBlock.Initialize(DataSetup::Program, "ActiveRegionsBlock");
-	RayCaster::ActiveRegionsBlock.Initialize(RayCaster::Program, "ActiveRegionsBlock");
+	ActiveRegions.Initialize(Blob.Data(), TotalSize);
 }
 
 
@@ -125,9 +110,15 @@ void SetupWorkItems()
 
 StatusCode CullingPass::Setup()
 {
-	RETURN_ON_FAIL(DataSetup::Program.ComputeCompile("10_volume_setup/data_setup.glsl.built"));
-	RETURN_ON_FAIL(RayCaster::Program.ComputeCompile("10_volume_setup/raycaster.glsl.built"));
-	RETURN_ON_FAIL(SplatPass::Program.RasterizationCompile("10_volume_setup/splat.vert", "10_volume_setup/splat.frag"));
+	RETURN_ON_FAIL(DataSetup.Setup(
+		{{GL_COMPUTE_SHADER, "10_volume_setup/data_setup.glsl"}}));
+
+	RETURN_ON_FAIL(RayCaster.Setup(
+		{{GL_COMPUTE_SHADER, "10_volume_setup/raycaster.glsl"}}));
+
+	RETURN_ON_FAIL(SplatPass.Setup(
+		{{GL_VERTEX_SHADER, "10_volume_setup/splat.vert"},
+		 {GL_FRAGMENT_SHADER, "10_volume_setup/splat.frag"}}));
 
 	SetupPositiveSpace();
 	SetupActiveRegions();
@@ -143,15 +134,19 @@ StatusCode CullingPass::Setup()
 
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
+	glGenQueries(3, TimingQueries);
+	glUseProgram(0);
+
 	return StatusCode::PASS;
 }
 
 
 void CullingPass::Dispatch()
 {
-	glUseProgram(DataSetup::Program.ProgramID);
-	DataSetup::PositiveSpaceBlock.Attach(PositiveSpaceBuffer);
-	DataSetup::ActiveRegionsBlock.Attach(ActiveRegionsBuffer);
+	glBeginQuery(GL_TIME_ELAPSED, TimingQueries[0]);
+	DataSetup.Activate();
+	PositiveSpace.Bind(GL_SHADER_STORAGE_BUFFER, 0);
+	ActiveRegions.Bind(GL_SHADER_STORAGE_BUFFER, 1);
 	glBindImageTexture(0, SomeUAV, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RG32I);
 	glBindSampler(0, Sampler);
 	glDispatchCompute(
@@ -159,19 +154,34 @@ void CullingPass::Dispatch()
 		FAST_DIV_ROUND_UP(ScreenHeight, 4),
 		1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+	glEndQuery(GL_TIME_ELAPSED);
 
-	glUseProgram(RayCaster::Program.ProgramID);
-	RayCaster::PositiveSpaceBlock.Attach(PositiveSpaceBuffer);
-	RayCaster::ActiveRegionsBlock.Attach(ActiveRegionsBuffer);
+	glBeginQuery(GL_TIME_ELAPSED, TimingQueries[1]);
+	RayCaster.Activate();
 	glBindImageTexture(0, SomeUAV, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RG32I);
 	glBindImageTexture(1, SomeUAV2, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 	glBindSampler(0, Sampler);
 	glBindSampler(1, Sampler);
 	glDispatchCompute(ScreenWidth, ScreenHeight, 1);
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+	glEndQuery(GL_TIME_ELAPSED);
 
-	glUseProgram(SplatPass::Program.ProgramID);
+	glBeginQuery(GL_TIME_ELAPSED, TimingQueries[2]);
+	SplatPass.Activate();
 	glBindTextureUnit(0, SomeUAV2);
 	glBindSampler(0, Sampler);
 	glDrawArrays(GL_TRIANGLES, 0, 3);
+	glEndQuery(GL_TIME_ELAPSED);
+
+	GLuint SetupTime;
+	GLuint CSGTime;
+	GLuint DrawTime;
+	glGetQueryObjectuiv(TimingQueries[0], GL_QUERY_RESULT, &SetupTime);
+	glGetQueryObjectuiv(TimingQueries[1], GL_QUERY_RESULT, &CSGTime);
+	glGetQueryObjectuiv(TimingQueries[2], GL_QUERY_RESULT, &DrawTime);
+
+	std::cout << "Timings (ns): "
+		<< SetupTime << ", "
+		<< CSGTime << ", "
+		<< DrawTime << "\n";
 }

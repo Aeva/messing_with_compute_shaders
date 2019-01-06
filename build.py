@@ -81,7 +81,8 @@ def build_shaders():
 
 if __name__ == "__main__":
     if sys.argv.count("--shaders-only") or sys.argv.count("-s"):
-        build_shaders()
+        #build_shaders()
+        pass
     else:
         build_program()
-        build_shaders()
+        #build_shaders()

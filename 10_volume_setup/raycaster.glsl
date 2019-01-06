@@ -1,5 +1,5 @@
-#include "10_volume_setup/common.glsl"
-
+prepend: 10_volume_setup/common.glsl
+--------------------------------------------------------------------------------
 layout(rg32i, binding = 0) uniform readonly iimage2D TileListHead;
 layout(rgba32f, binding = 1) uniform writeonly image2D RenderResults;
 

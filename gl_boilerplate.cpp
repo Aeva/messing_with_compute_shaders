@@ -1,42 +1,7 @@
 #include <iostream>
 #include <fstream>
-#include <sstream>
-#include <string>
+#include <set>
 #include "gl_boilerplate.h"
-
-
-std::string ReadFile(const char* Path)
-{
-	std::ifstream File;
-	File.open(Path);
-	std::stringstream Reader;
-	Reader << File.rdbuf();
-	File.close();
-	return Reader.str();
-}
-
-
-std::string CheckCompileStatus(GLuint ObjectId)
-{
-	GLint StatusValue;
-	glGetShaderiv(ObjectId, GL_COMPILE_STATUS, &StatusValue);
-	if (StatusValue == GL_FALSE)
-	{
-		GLint LogLength;
-		glGetShaderiv(ObjectId, GL_INFO_LOG_LENGTH, &LogLength);
-		if (LogLength)
-		{
-			std::string ErrorLog(LogLength, 0);
-			glGetShaderInfoLog(ObjectId, LogLength, NULL, (char*) ErrorLog.data());
-			return ErrorLog;
-		}
-		else
-		{
-			return std::string("An unknown error occured.");
-		}
-	}
-	return std::string();
-}
 
 
 std::string CheckLinkStatus(GLuint ObjectId)
@@ -62,60 +27,160 @@ std::string CheckLinkStatus(GLuint ObjectId)
 }
 
 
-StatusCode BuildShader(const char* Path, GLenum ShaderType, GLuint& ShaderObject)
+bool IsPrepender(std::string Line, std::string& NextPath)
 {
-	std::cout << "Building Shader: " << Path << '\n';
-	std::string Source = ReadFile(Path);
-	const GLchar* SourcePtr = Source.data();
-	const GLint SourceSize = Source.size();
+	const std::string Prefix = "prepend: ";
+	if (Line.size() >= Prefix.size())
+	{
+		const std::string Test = Line.substr(0, Prefix.size());
+		if (Test == Prefix)
+		{
+			NextPath = Line.substr(Prefix.size(), Line.size() - Prefix.size());
+			return true;
+		}
+	}
+	return false;
+}
 
-	ShaderObject = glCreateShader(ShaderType);
-	glShaderSource(ShaderObject, 1, &SourcePtr, &SourceSize);
-	glCompileShader(ShaderObject);
 
-	std::string Error = CheckCompileStatus(ShaderObject);
+bool IsPerforation(std::string Line)
+{
+	// Matches ^----*$
+	if (Line.size() < 3)
+	{
+		return false;
+	}
+	for (int i=0; i<Line.size(); i++)
+	{
+		if (Line[i] != '-')
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+
+StatusCode FillSources(std::vector<std::string>& BreadCrumbs, std::vector<std::string>& Sources, std::string Path)
+{
+	for (const auto& Visited : BreadCrumbs)
+	{
+		if (Path == Visited)
+		{
+			return StatusCode::PASS;
+		}
+	}
+	BreadCrumbs.push_back(Path);
+
+	std::ifstream File(Path);
+	if (!File.is_open())
+	{
+		std::cout << "Error: cannot open file \"" << Path << "\"\n";
+		return StatusCode::FAIL;
+	}
+	std::string Line;
+	std::string Source;
+	bool bFoundTear = false;
+	int OriginalLine = -1;
+	while (getline(File, Line))
+	{
+		++OriginalLine;
+		if (!bFoundTear)
+		{
+			std::string Detour;
+			if (IsPerforation(Line))
+			{
+				bFoundTear = true;
+				Source.erase();
+				Source = "#line ";
+				Source += std::to_string(OriginalLine + 1);
+				Source += "\n";
+				continue;
+			}
+			else if (IsPrepender(Line, Detour))
+			{
+				RETURN_ON_FAIL(FillSources(BreadCrumbs, Sources, Detour));
+				continue;
+			}
+		}
+		Source += Line + '\n';
+	}
+	File.close();
+	Sources.push_back(Source);
+	return StatusCode::PASS;
+}
+
+
+StatusCode CompileShader(GLenum ShaderType, std::string Path, GLuint& ProgramID)
+{
+	const std::string Extensions = \
+		"#version 420\n" \
+		"#extension GL_ARB_compute_shader : require\n" \
+	   	"#extension GL_ARB_shader_storage_buffer_object : require\n" \
+	   	"#extension GL_ARB_shader_image_load_store : require\n" \
+		"#extension GL_ARB_gpu_shader5 : require\n" \
+		"#extension GL_ARB_shading_language_420pack : require\n";
+
+	std::vector<std::string> Sources;
+	std::vector<std::string> BreadCrumbs;
+	Sources.push_back(Extensions);
+	BreadCrumbs.push_back("(generated)");
+	FillSources(BreadCrumbs, Sources, Path);
+
+	const int Count = Sources.size();
+	const char* Strings[Count];
+	for (int i=0; i<Count; ++i)
+	{
+		Strings[i] = Sources[i].c_str();
+	}
+	ProgramID = glCreateShaderProgramv(ShaderType, Count, Strings);
+	std::string Error = CheckLinkStatus(ProgramID);
 	if (!Error.empty())
 	{
-		std::cout << Error << '\n';
+		std::cout << "Generated part:\n" << Sources[0] << "\n\n";
+		std::cout << "Shader string paths:\n";
+		for (int i=0; i<BreadCrumbs.size(); ++i)
+		{
+			std::cout << i << " -> " << BreadCrumbs[i] << "\n";
+		}
+		std::cout << "\n" << Error << '\n';
 		return StatusCode::FAIL;
 	}
 	return StatusCode::PASS;
 }
 
 
-StatusCode LinkProgram(GLuint* ShaderObjects, int ShaderCount, GLuint& ProgramObject)
+StatusCode ShaderPipeline::Setup(std::map<GLenum, std::string> Shaders)
 {
-	ProgramObject = glCreateProgram();
-	for (int i=0; i<ShaderCount; ++i)
+	glGenProgramPipelines(1, &PipelineID);
+	for (const auto& Shader : Shaders)
 	{
-		GLuint ShaderObject = ShaderObjects[i];
-		glAttachShader(ProgramObject, ShaderObject);
-	}
-	glLinkProgram(ProgramObject);
-
-	std::string Error = CheckLinkStatus(ProgramObject);
-	if (!Error.empty())
-	{
-		std::cout << Error << '\n';
-		return StatusCode::FAIL;
+		RETURN_ON_FAIL(CompileShader(Shader.first, Shader.second, Stages[Shader.first]));
+		const GLuint ModeBits = \
+			Shader.first == GL_VERTEX_SHADER ? GL_VERTEX_SHADER_BIT : \
+			Shader.first == GL_FRAGMENT_SHADER ? GL_FRAGMENT_SHADER_BIT : \
+			GL_COMPUTE_SHADER_BIT;
+		glUseProgramStages(PipelineID, ModeBits, Stages[Shader.first]);
 	}
 	return StatusCode::PASS;
 }
 
 
-StatusCode ShaderProgram::ComputeCompile(const char* ComputePath)
+void ShaderPipeline::Activate()
 {
-	// compute shader
-	GLuint ComputeShader;
-	RETURN_ON_FAIL(BuildShader(ComputePath, GL_COMPUTE_SHADER, ComputeShader));
-	return LinkProgram(&ComputeShader, 1, ProgramID);
+	glBindProgramPipeline(PipelineID);
 }
 
 
-StatusCode ShaderProgram::RasterizationCompile(const char* VertexPath, const char* FragmentPath)
+void Buffer::Initialize(void* Data, size_t Bytes)
 {
-	GLuint SplatShaders[2];
-	RETURN_ON_FAIL(BuildShader(VertexPath, GL_VERTEX_SHADER, SplatShaders[0]));
-	RETURN_ON_FAIL(BuildShader(FragmentPath, GL_FRAGMENT_SHADER, SplatShaders[1]));
-	return LinkProgram(SplatShaders, 2, ProgramID);
+	glCreateBuffers(1, &BufferID);
+	glNamedBufferStorage(BufferID, Bytes, Data, 0);
 }
+
+
+void Buffer::Bind(GLenum Target, GLuint BindingIndex)
+{
+	glBindBufferBase(Target, BindingIndex, BufferID);
+}
+
