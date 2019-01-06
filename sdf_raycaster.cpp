@@ -1,8 +1,8 @@
-#include "../vector_math.h"
-#include "compute_pass.h"
-#include <vector>
+#include "glue/vector_math.h"
+#include "glue/blob_builder.h"
+#include "sdf_raycaster.h"
 #include <iostream>
-using namespace CullingPass;
+using namespace RayCastingExperiment;
 
 ShaderPipeline DataSetup;
 ShaderPipeline RayCaster;
@@ -11,38 +11,11 @@ ShaderPipeline SplatPass;
 Buffer PositiveSpace;
 Buffer ActiveRegions;
 
-GLuint SomeUAV;
-GLuint SomeUAV2;
+GLuint TileListHead;
+GLuint RenderingResults;
 GLuint Sampler;
 
 GLuint TimingQueries[3];
-
-struct BlobBuilder
-{
-	std::vector<char> Blob;
-	size_t Seek;
-	BlobBuilder(size_t Size, char ClearValue='\0')
-	{
-		Seek = 0;
-		Blob.resize(Size, ClearValue);
-	}
-	template<typename T>
-	T* Advance()
-	{
-		T* Handle = reinterpret_cast<T*>(Blob.data() + Seek);
-		Seek += sizeof(T);
-		return Handle;
-	}
-	template<typename T>
-	void Write(T Value)
-	{
-		*Advance<T>() = Value;
-	}
-	void* Data()
-	{
-		return reinterpret_cast<void*>(Blob.data());
-	}
-};
 
 
 void FillSphere(Bounds &Data, GLfloat X, GLfloat Y, GLfloat Z, GLfloat Radius)
@@ -94,11 +67,11 @@ void SetupActiveRegions()
 
 void SetupWorkItems()
 {
-	glCreateTextures(GL_TEXTURE_2D, 1, &SomeUAV);
-	glTextureStorage2D(SomeUAV, 1, GL_RG32I, FAST_DIV_ROUND_UP(ScreenWidth, 4), FAST_DIV_ROUND_UP(ScreenHeight, 4));
+	glCreateTextures(GL_TEXTURE_2D, 1, &TileListHead);
+	glTextureStorage2D(TileListHead, 1, GL_RG32I, FAST_DIV_ROUND_UP(ScreenWidth, 4), FAST_DIV_ROUND_UP(ScreenHeight, 4));
 
-	glCreateTextures(GL_TEXTURE_2D, 1, &SomeUAV2);
-	glTextureStorage2D(SomeUAV2, 1, GL_RGBA32F, ScreenWidth, ScreenHeight);
+	glCreateTextures(GL_TEXTURE_2D, 1, &RenderingResults);
+	glTextureStorage2D(RenderingResults, 1, GL_RGBA32F, ScreenWidth, ScreenHeight);
 
 	glCreateSamplers(1, &Sampler);
 	glSamplerParameteri(Sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -108,17 +81,17 @@ void SetupWorkItems()
 }
 
 
-StatusCode CullingPass::Setup()
+StatusCode RayCastingExperiment::Setup()
 {
 	RETURN_ON_FAIL(DataSetup.Setup(
-		{{GL_COMPUTE_SHADER, "10_volume_setup/data_setup.glsl"}}));
+		{{GL_COMPUTE_SHADER, "shaders/data_setup.glsl"}}));
 
 	RETURN_ON_FAIL(RayCaster.Setup(
-		{{GL_COMPUTE_SHADER, "10_volume_setup/raycaster.glsl"}}));
+		{{GL_COMPUTE_SHADER, "shaders/raycaster.glsl"}}));
 
 	RETURN_ON_FAIL(SplatPass.Setup(
-		{{GL_VERTEX_SHADER, "10_volume_setup/splat.vert"},
-		 {GL_FRAGMENT_SHADER, "10_volume_setup/splat.frag"}}));
+		{{GL_VERTEX_SHADER, "shaders/splat.vert"},
+		 {GL_FRAGMENT_SHADER, "shaders/splat.frag"}}));
 
 	SetupPositiveSpace();
 	SetupActiveRegions();
@@ -136,18 +109,19 @@ StatusCode CullingPass::Setup()
 
 	glGenQueries(3, TimingQueries);
 	glUseProgram(0);
+	glClearDepth(0);
 
 	return StatusCode::PASS;
 }
 
 
-void CullingPass::Dispatch()
+void RayCastingExperiment::Dispatch()
 {
 	glBeginQuery(GL_TIME_ELAPSED, TimingQueries[0]);
 	DataSetup.Activate();
 	PositiveSpace.Bind(GL_SHADER_STORAGE_BUFFER, 0);
 	ActiveRegions.Bind(GL_SHADER_STORAGE_BUFFER, 1);
-	glBindImageTexture(0, SomeUAV, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RG32I);
+	glBindImageTexture(0, TileListHead, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RG32I);
 	glBindSampler(0, Sampler);
 	glDispatchCompute(
 		FAST_DIV_ROUND_UP(ScreenWidth, 4),
@@ -158,8 +132,8 @@ void CullingPass::Dispatch()
 
 	glBeginQuery(GL_TIME_ELAPSED, TimingQueries[1]);
 	RayCaster.Activate();
-	glBindImageTexture(0, SomeUAV, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RG32I);
-	glBindImageTexture(1, SomeUAV2, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+	glBindImageTexture(0, TileListHead, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RG32I);
+	glBindImageTexture(1, RenderingResults, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 	glBindSampler(0, Sampler);
 	glBindSampler(1, Sampler);
 	glDispatchCompute(ScreenWidth, ScreenHeight, 1);
@@ -168,7 +142,7 @@ void CullingPass::Dispatch()
 
 	glBeginQuery(GL_TIME_ELAPSED, TimingQueries[2]);
 	SplatPass.Activate();
-	glBindTextureUnit(0, SomeUAV2);
+	glBindTextureUnit(0, RenderingResults);
 	glBindSampler(0, Sampler);
 	glDrawArrays(GL_TRIANGLES, 0, 3);
 	glEndQuery(GL_TIME_ELAPSED);

@@ -2,10 +2,10 @@
 #include <iostream>
 #include "errors.h"
 #include "gl_boilerplate.h"
-#include "10_volume_setup/compute_pass.h"
+#include "../sdf_raycaster.h"
 
 #if RENDERDOC_CAPTURE_AND_QUIT
-#include "renderdoc.h"
+#include "../renderdoc.h"
 #include <dlfcn.h>
 RENDERDOC_API_1_1_2 *rdoc_api = NULL;
 #endif
@@ -136,9 +136,7 @@ StatusCode SetupGLFW()
 
 StatusCode DemoSetup ()
 {
-	RETURN_ON_FAIL(CullingPass::Setup());
-
-	glClearDepth(0);
+	RETURN_ON_FAIL(RayCastingExperiment::Setup());
 	return StatusCode::PASS;
 }
 
@@ -146,7 +144,7 @@ StatusCode DemoSetup ()
 void DrawFrame()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	CullingPass::Dispatch();
+	RayCastingExperiment::Dispatch();
 	//RenderingPass::Draw();
     
 	glfwSwapBuffers(Window);

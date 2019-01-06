@@ -1,9 +1,9 @@
 #pragma once
-#include "../errors.h"
-#include "../gl_boilerplate.h"
+#include "glue/errors.h"
+#include "glue/gl_boilerplate.h"
 
 
-namespace CullingPass
+namespace RayCastingExperiment
 {
 	StatusCode Setup();
 	void Dispatch();

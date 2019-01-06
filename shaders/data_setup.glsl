@@ -1,4 +1,4 @@
-prepend: 10_volume_setup/common.glsl
+prepend: shaders/common.glsl
 --------------------------------------------------------------------------------
 layout(rg32i, binding = 0) uniform writeonly iimage2D TileListHead;
 

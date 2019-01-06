@@ -5,7 +5,6 @@ import glob
 import time
 import math
 import subprocess
-import glsl_include
 
 
 def find_compiler():
@@ -71,18 +70,6 @@ def build_program():
         print ("Rember to symlink \"renderdoc.h\" and \"librenderdoc.so\" into the project root!")
 
 
-def build_shaders():
-    shaders = glob.glob("**/*.glsl", recursive=True)
-    shaders += glob.glob("**/*.vert", recursive=True)
-    shaders += glob.glob("**/*.frag", recursive=True)
-    for shader in shaders:
-        glsl_include.process_file(shader)
-
-
 if __name__ == "__main__":
-    if sys.argv.count("--shaders-only") or sys.argv.count("-s"):
-        #build_shaders()
-        pass
-    else:
-        build_program()
-        #build_shaders()
+    build_program()
+
