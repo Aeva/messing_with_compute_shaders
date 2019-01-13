@@ -9,18 +9,3 @@ namespace RayCastingExperiment
 	void Dispatch();
 }
 
-
-struct Bounds
-{
-	GLfloat Center[4];
-	GLfloat Extent[4];
-};
-
-
-struct ActiveRegion
-{
-	GLfloat StartDepth;
-	GLfloat EndDepth;
-	GLint NextRegion;
-};
-

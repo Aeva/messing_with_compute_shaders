@@ -158,13 +158,15 @@ void DrawFrame()
 int main()
 {
 	QUIT_ON_FAIL(SetupGLFW());
-	QUIT_ON_FAIL(DemoSetup());
 
 #if RENDERDOC_CAPTURE_AND_QUIT
 	if (rdoc_api != nullptr)
 	{
 		rdoc_api->StartFrameCapture(NULL, NULL);
-#else
+#endif
+		QUIT_ON_FAIL(DemoSetup());
+
+#if !RENDERDOC_CAPTURE_AND_QUIT
 		while(!glfwWindowShouldClose(Window) && !GetHaltAndCatchFire())
 #endif
 		{
