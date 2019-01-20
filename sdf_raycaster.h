@@ -6,6 +6,6 @@
 namespace RayCastingExperiment
 {
 	StatusCode Setup();
-	void Dispatch();
+	void Render();
 }
 
