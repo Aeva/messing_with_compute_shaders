@@ -1,4 +1,4 @@
-prepend: shaders/volumizer_common.glsl
+prepend: shaders/volumizer.etc.glsl
 --------------------------------------------------------------------------------
 
 out vec3 UVW;

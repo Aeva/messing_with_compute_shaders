@@ -110,9 +110,9 @@ StatusCode RayCastingExperiment::Setup()
 		{{GL_COMPUTE_SHADER, "shaders/sphere_fill.glsl"}}));
 
 	RETURN_ON_FAIL(Volumizer.Setup(
-		{{GL_VERTEX_SHADER, "shaders/volumizer.vert"},
-		 {GL_GEOMETRY_SHADER, "shaders/volumizer.geom"},
-		 {GL_FRAGMENT_SHADER, "shaders/volumizer.frag"}}));
+		{{GL_VERTEX_SHADER, "shaders/volumizer.vs.glsl"},
+		 {GL_GEOMETRY_SHADER, "shaders/volumizer.gs.glsl"},
+		 {GL_FRAGMENT_SHADER, "shaders/volumizer.fs.glsl"}}));
 
 	glUseProgram(0);
 
