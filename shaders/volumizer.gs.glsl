@@ -1,4 +1,5 @@
 prepend: shaders/volumizer.etc.glsl
+prepend: shaders/sdf_common.glsl
 --------------------------------------------------------------------------------
 
 layout(binding = 0) uniform sampler3D SDFVolume;
@@ -47,23 +48,49 @@ void DrawQuad(
 	EndPrimitive();
 }
 
+/*
+void DrawTestQuad()
+{
+	WorldPosition = vec4(0, 0, 0, 1);
+	gl_Position = vec4(-1, 1, 0.5, 1);
+	EmitVertex();
+	WorldPosition = vec4(0, 0, 0, 1);
+	gl_Position = vec4(1, 1, 0.5, 1);
+	EmitVertex();
+	WorldPosition = vec4(0, 0, 0, 1);
+	gl_Position = vec4(-1, -1, 0.5, 1);
+	EmitVertex();
+	WorldPosition = vec4(0, 0, 0, 1);
+	gl_Position = vec4(1, -1, 0.5, 1);
+	EmitVertex();
+	EndPrimitive();
+}
+*/
+
 layout(points) in;
 layout(triangle_strip, max_vertices = 16) out; // emit four quads per cell
 void main()
 {
+	const vec3 CellSize = VolumeExtent.xyz * vec3(VolumeInvSize);
 	const float SDF = texture(SDFVolume, UVW[0]).r;
-	if (SDF <= CornerOffset.w)
+	if (SDF <= length(CellSize))
 	{
-		const vec3 Center = WorldOrigin.xyz - WorldSize.xyz * 0.5 + (UVW[0]) * WorldSize.xyz - 0.5;
-		const vec3 ViewMin = Center - CornerOffset.xyz;
-		const vec3 ViewMax = Center + CornerOffset.xyz;
-		const vec2 ClipMin = ViewToClip(vec2(ViewMin.x, ViewMax.y));
-		const vec2 ClipMax = ViewToClip(vec2(ViewMax.x, ViewMin.y));
-		for (float i=0; i<4; ++i)
+		const vec3 CellCenter = VolumeUVWToWorld(UVW[0]);
+		const vec3 CellMin = CellSize * -0.5 + CellCenter;
+		const vec3 CellMax = CellMin + CellSize;
+		if (CellMax.z > 0)
 		{
-			const float ViewDepth = mix(ViewMin.z, ViewMax.z, i * 0.25);
-			const float ClipDepth = DepthToClip(ViewDepth);
-			DrawQuad(vec2(ViewMin.x, ViewMax.y), vec2(ViewMax.x, ViewMin.y), ViewDepth, ClipMin, ClipMax, ClipDepth);
+			// Only generate primitives if the entire cell is in front of the viewer.
+			const vec2 ViewMin = vec2(CellMin.x, CellMax.y);
+			const vec2 ViewMax = vec2(CellMax.x, CellMin.y);
+			const vec2 ClipMin = ViewToClip(ViewMin);
+			const vec2 ClipMax = ViewToClip(ViewMax);
+			for (float i=0; i<4; ++i)
+			{
+				const float ViewDepth = mix(CellMin.z, CellMax.z, i * 0.25);
+				const float ClipDepth = DepthToClip(ViewDepth);
+				DrawQuad(ViewMin, ViewMax, ViewDepth, ClipMin, ClipMax, ClipDepth);
+			}
 		}
 	}
 }

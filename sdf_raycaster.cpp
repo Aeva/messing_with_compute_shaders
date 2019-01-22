@@ -9,8 +9,10 @@ using namespace RayCastingExperiment;
 ShaderPipeline SphereFill;
 ShaderPipeline Volumizer;
 
-const float ObjectWidth = 100;
-const float VolumeSize = 16;
+const float VolumeRadius = 200;
+const float VolumeMin[3] = {100, 100, 100};
+const float VolumeExtent[3] = {VolumeRadius*2, VolumeRadius*2, VolumeRadius*2};
+const float VolumeResolution = 16;
 GLuint SDFVolume;
 GLuint Sampler;
 
@@ -24,8 +26,29 @@ Buffer ScreenInfo;
 
 void SetupSDFVolumes()
 {
+	{
+		const size_t TotalSize = 4 * 4 * 3;
+		BlobBuilder Blob(TotalSize);
+		// Volume Minimum World Position
+		Blob.Write(VolumeMin[0]);
+		Blob.Write(VolumeMin[1]);
+		Blob.Write(VolumeMin[2]);
+		Blob.Write(1.0f);
+		// Volume World Extent
+		Blob.Write(VolumeExtent[0]);
+		Blob.Write(VolumeExtent[1]);
+		Blob.Write(VolumeExtent[2]);
+		Blob.Write(0.0f);
+		// Volume Params
+		Blob.Write(VolumeResolution);
+		Blob.Write(1.0f / VolumeResolution);
+		Blob.Write(VolumeRadius);
+		Blob.Write(0.0f);
+		VolumeInfo.Initialize(Blob.Data(), TotalSize);
+	}
+
 	glCreateTextures(GL_TEXTURE_3D, 1, &SDFVolume);
-	glTextureStorage3D(SDFVolume, 1, GL_R32F, VolumeSize, VolumeSize, VolumeSize);
+	glTextureStorage3D(SDFVolume, 1, GL_R32F, VolumeResolution, VolumeResolution, VolumeResolution);
 
 	glCreateSamplers(1, &Sampler);
 	glSamplerParameteri(Sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -36,10 +59,11 @@ void SetupSDFVolumes()
 
 	SphereFill.Activate();
 	glBindImageTexture(0, SDFVolume, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_R32F);
+	VolumeInfo.Bind(GL_UNIFORM_BUFFER, 1);
 	glDispatchCompute(
-		FAST_DIV_ROUND_UP(VolumeSize, 4),
-		FAST_DIV_ROUND_UP(VolumeSize, 4),
-		VolumeSize);
+		FAST_DIV_ROUND_UP(VolumeResolution, 4),
+		FAST_DIV_ROUND_UP(VolumeResolution, 4),
+		VolumeResolution);
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
 
@@ -49,7 +73,7 @@ void SetupVolumizerData()
 	const float HalfScreenWidth = float(ScreenWidth) / 2.0;
 	const float HalfScreenHeight = float(ScreenHeight) / 2.0;
 	{
-		const size_t TotalSize = 4 * 4 * 3;
+		const size_t TotalSize = 4 * 4 * 2;
 		BlobBuilder Blob(TotalSize);
 		// Masks
 		Blob.Write(0x000F);
@@ -62,34 +86,7 @@ void SetupVolumizerData()
 		Blob.Write(8);
 		Blob.Write(0);
 		// ToUVW
-		const float ToUVW = 1.0 / VolumeSize;
-		Blob.Write(ToUVW);
-		Blob.Write(ToUVW);
-		Blob.Write(ToUVW);
-		Blob.Write(0);
 		VertexInfo.Initialize(Blob.Data(), TotalSize);
-	}
-	{
-		const size_t TotalSize = 4 * 4 * 3;
-		BlobBuilder Blob(TotalSize);
-		// CornerOffset
-		const float CellHalfSize = ObjectWidth / VolumeSize / 2.0;
-		const float CornerDistance = sqrt(CellHalfSize * CellHalfSize * 3);
-		Blob.Write(CellHalfSize);
-		Blob.Write(CellHalfSize);
-		Blob.Write(CellHalfSize);
-		Blob.Write(CornerDistance);
-		// WorldSize
-		Blob.Write(ObjectWidth);
-		Blob.Write(ObjectWidth);
-		Blob.Write(ObjectWidth);
-		Blob.Write(1.0f);
-		// WorldOrigin
-		Blob.Write(HalfScreenWidth);
-		Blob.Write(HalfScreenHeight);
-		Blob.Write(400.0f);
-		Blob.Write(1.0f);
-		VolumeInfo.Initialize(Blob.Data(), TotalSize);
 	}
 	{
 		const size_t TotalSize = 4 * 4 * 2;
