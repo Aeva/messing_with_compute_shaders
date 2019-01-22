@@ -22,11 +22,18 @@ uniform VolumeInfoBlock
 layout(std140, binding=2)
 uniform ScreenInfoBlock
 {
-	vec4 ScreenToClipParams; // (width/2-0.5, height/2-0.5, 1/width, -1/height)
+	vec4 ScreenToClipParams; // (width/2-0.5, height/2-0.5, 1/width/2, -1/height/2)
+	vec4 ScreenSize; // (width, height, 1/width, 1/height)
 };
 
 
-vec3 ScreenToClip(vec3 Screen)
+vec2 ViewToClip(vec2 Position)
 {
-	return (Screen - vec3(ScreenToClipParams.xy, 0)) * vec3(ScreenToClipParams.zw, 1);
-};
+	return (Position.xy - ScreenToClipParams.xy) * ScreenToClipParams.zw;
+}
+
+
+float DepthToClip(float Depth)
+{
+	return 1/Depth;
+}

@@ -9,6 +9,7 @@ using namespace RayCastingExperiment;
 ShaderPipeline SphereFill;
 ShaderPipeline Volumizer;
 
+const float ObjectWidth = 100;
 const float VolumeSize = 16;
 GLuint SDFVolume;
 GLuint Sampler;
@@ -45,6 +46,8 @@ void SetupSDFVolumes()
 
 void SetupVolumizerData()
 {
+	const float HalfScreenWidth = float(ScreenWidth) / 2.0;
+	const float HalfScreenHeight = float(ScreenHeight) / 2.0;
 	{
 		const size_t TotalSize = 4 * 4 * 3;
 		BlobBuilder Blob(TotalSize);
@@ -59,9 +62,10 @@ void SetupVolumizerData()
 		Blob.Write(8);
 		Blob.Write(0);
 		// ToUVW
-		Blob.Write(1.0f/16.0f);
-		Blob.Write(1.0f/16.0f);
-		Blob.Write(1.0f/16.0f);
+		const float ToUVW = 1.0 / VolumeSize;
+		Blob.Write(ToUVW);
+		Blob.Write(ToUVW);
+		Blob.Write(ToUVW);
 		Blob.Write(0);
 		VertexInfo.Initialize(Blob.Data(), TotalSize);
 	}
@@ -69,36 +73,41 @@ void SetupVolumizerData()
 		const size_t TotalSize = 4 * 4 * 3;
 		BlobBuilder Blob(TotalSize);
 		// CornerOffset
-		const float CellHalfSize = 100.0 / 16.0 * 0.5;
+		const float CellHalfSize = ObjectWidth / VolumeSize / 2.0;
 		const float CornerDistance = sqrt(CellHalfSize * CellHalfSize * 3);
 		Blob.Write(CellHalfSize);
 		Blob.Write(CellHalfSize);
 		Blob.Write(CellHalfSize);
 		Blob.Write(CornerDistance);
 		// WorldSize
-		Blob.Write(100.0f);
-		Blob.Write(100.0f);
-		Blob.Write(100.0f);
+		Blob.Write(ObjectWidth);
+		Blob.Write(ObjectWidth);
+		Blob.Write(ObjectWidth);
 		Blob.Write(1.0f);
 		// WorldOrigin
-		Blob.Write(float(ScreenWidth) * 0.5f);
-		Blob.Write(float(ScreenHeight) * 0.5f);
+		Blob.Write(HalfScreenWidth);
+		Blob.Write(HalfScreenHeight);
 		Blob.Write(400.0f);
 		Blob.Write(1.0f);
 		VolumeInfo.Initialize(Blob.Data(), TotalSize);
 	}
 	{
-		const size_t TotalSize = 4 * 4 * 1;
+		const size_t TotalSize = 4 * 4 * 2;
 		BlobBuilder Blob(TotalSize);
 		// ScreenToClipParams
-		const float OffsetX = float(ScreenWidth) / 2.0 - 0.5;
-		const float OffsetY = float(ScreenHeight) / 2.0 - 0.5;
-		const float ScaleX = 1.0 / float(ScreenWidth);
-		const float ScaleY = -1.0 / float(ScreenHeight);
+		const float OffsetX = HalfScreenWidth - 0.5;
+		const float OffsetY = HalfScreenHeight - 0.5;
+		const float ScaleX = 1.0 / HalfScreenWidth;
+		const float ScaleY = -1.0 / HalfScreenHeight;
 		Blob.Write(OffsetX);
 		Blob.Write(OffsetY);
 		Blob.Write(ScaleX);
 		Blob.Write(ScaleY);
+		// ScreenSize
+		Blob.Write(float(ScreenWidth));
+		Blob.Write(float(ScreenHeight));
+		Blob.Write(1.0f / float(ScreenWidth));
+		Blob.Write(1.0f / float(ScreenHeight));
 		ScreenInfo.Initialize(Blob.Data(), TotalSize);
 	}
 }
@@ -126,12 +135,14 @@ StatusCode RayCastingExperiment::Setup()
 	glBindVertexArray(vao);
 
 	glDisable(GL_CULL_FACE);
-	glDisable(GL_DEPTH_TEST);
+
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LEQUAL);
+	glClearDepth(1);
 
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
 	//glGenQueries(3, TimingQueries);
-	glClearDepth(0);
 
 	return StatusCode::PASS;
 }
@@ -139,6 +150,7 @@ StatusCode RayCastingExperiment::Setup()
 
 void RayCastingExperiment::Render()
 {
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	Volumizer.Activate();
 	glBindTextureUnit(0, SDFVolume);
 	glBindSampler(0, Sampler);
