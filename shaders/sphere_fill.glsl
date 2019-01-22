@@ -11,6 +11,6 @@ void main()
 {
 	const ivec3 VolumeIndex = ivec3(gl_GlobalInvocationID.zyx);
 	const vec3 SampleAt = VolumeIndexToWorld(VolumeIndex);
-	const float SDF = SphereSDF(SampleAt, VolumeOrigin.xyz, VolumeRadius);
+	const float SDF = HelloWorldSDF(SampleAt);
 	imageStore(SDFVolume, VolumeIndex, vec4(SDF, 0, 0, 0));
 }

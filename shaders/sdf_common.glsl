@@ -38,7 +38,37 @@ vec3 VolumeWorldToUVW(vec3 World)
 	return clamp((World - VolumeMin.xyz) / VolumeExtent.xyz, 0.0, 1.0);
 }
 
+// - - - - CSG operators - - - -
+
+float Union(float lhs, float rhs)
+{
+	return min(lhs, rhs);
+}
+
+
+float Intersection(float lhs, float rhs)
+{
+	return max(lhs, rhs);
+}
+
+
+float Difference(float lhs, float rhs)
+{
+	return max(lhs, -rhs);
+}
+
+// - - - - SDF shape functions - - - -
+
 float SphereSDF(vec3 Test, vec3 Origin, float Radius)
 {
 	return length(Test - Origin) - Radius;
+}
+
+float HelloWorldSDF(vec3 Test)
+{
+	float Solid = SphereSDF(Test, VolumeOrigin.xyz, VolumeRadius);
+	float Cutaway1 = SphereSDF(Test, vec3(250, 250, 400), 150);
+	float Cutaway2 = SphereSDF(Test, vec3(400, 400, 400), 80);
+	float Cutaway3 = SphereSDF(Test, vec3(290, 290, 200), 100);
+	return Difference(Difference(Difference(Solid, Cutaway1), Cutaway2), Cutaway3);
 }

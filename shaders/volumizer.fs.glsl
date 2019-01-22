@@ -9,7 +9,7 @@ void main()
 {
 	//Color = vec4(1.0, 0.0, 0.5, 1.0);
 	//Color = vec4(VolumeWorldToUVW(WorldPosition.xyz), 1.0);
-	float SDF = SphereSDF(WorldPosition.xyz, VolumeOrigin.xyz, VolumeRadius);
+	float SDF = HelloWorldSDF(WorldPosition.xyz);
 	if (SDF <= 0.0)
 	{
 		Color = vec4(VolumeWorldToUVW(WorldPosition.xyz), 1.0);
