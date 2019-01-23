@@ -20,6 +20,7 @@ out gl_PerVertex
 
 in vec3 UVW[];
 out vec4 WorldPosition;
+out float SliceThickness;
 out float Tollerance;
 
 #define TopLeft(Name) vec4(Name##Min.xy, Name##Depth, 1)
@@ -27,26 +28,31 @@ out float Tollerance;
 #define BottomLeft(Name) vec4(Name##Min.x, Name##Max.y, Name##Depth, 1)
 #define BottomRight(Name) vec4(Name##Max.xy, Name##Depth, 1)
 
+
 void DrawQuad(
 	vec2 ViewMin, vec2 ViewMax, float ViewDepth,
-	vec2 ClipMin, vec2 ClipMax, float ClipDepth, float Threshold)
+	vec2 ClipMin, vec2 ClipMax, float ClipDepth, float _Tollerance, float _SliceThickness)
 {
-	Tollerance = Threshold;
+	Tollerance = _Tollerance;
+	SliceThickness = _SliceThickness;
 	WorldPosition = TopLeft(View);
 	gl_Position = TopLeft(Clip);
 	EmitVertex();
 
-	Tollerance = Threshold;
+	Tollerance = _Tollerance;
+	SliceThickness = _SliceThickness;
 	WorldPosition = TopRight(View);
 	gl_Position = TopRight(Clip);
 	EmitVertex();
 
-	Tollerance = Threshold;
+	Tollerance = _Tollerance;
+	SliceThickness = _SliceThickness;
 	WorldPosition = BottomLeft(View);
 	gl_Position = BottomLeft(Clip);
 	EmitVertex();
 
-	Tollerance = Threshold;
+	Tollerance = _Tollerance;
+	SliceThickness = _SliceThickness;
 	WorldPosition = BottomRight(View);
 	gl_Position = BottomRight(Clip);
 	EmitVertex();
@@ -94,12 +100,13 @@ void main()
 			const vec2 ViewMax = vec2(CellMax.x, CellMin.y);
 			const vec2 ClipMin = ViewToClip(ViewMin);
 			const vec2 ClipMax = ViewToClip(ViewMax);
-			const float SliceThreshold = Threshold * InvSlices * 0.5;
-			for (float i=0.25; i<Slices; ++i)
+			const float _SliceThickness = abs(CellMax.z - CellMin.z) * InvSlices;
+			const float _Tollerance = Threshold * InvSlices;
+			for (float i=0; i<Slices; ++i)
 			{
 				const float ViewDepth = mix(CellMin.z, CellMax.z, i * InvSlices);
 				const float ClipDepth = DepthToClip(ViewDepth);
-				DrawQuad(ViewMin, ViewMax, ViewDepth, ClipMin, ClipMax, ClipDepth, SliceThreshold);
+				DrawQuad(ViewMin, ViewMax, ViewDepth, ClipMin, ClipMax, ClipDepth, _Tollerance, _SliceThickness);
 			}
 		}
 	}

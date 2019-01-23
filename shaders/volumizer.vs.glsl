@@ -9,6 +9,12 @@ uniform VertexInfoBlock
 	ivec4 Offset; // (0, y, z, unused)
 };
 
+out gl_PerVertex
+{
+  vec4 gl_Position;
+  float gl_PointSize;
+  float gl_ClipDistance[];
+};
 out vec3 UVW;
 
 void main()
