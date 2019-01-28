@@ -21,7 +21,7 @@ Buffer VolumeInfo;
 Buffer ScreenInfo;
 
 
-//GLuint TimingQueries[3];
+GLuint TimingQueries[3];
 
 
 void SetupSDFVolumes()
@@ -139,7 +139,7 @@ StatusCode RayCastingExperiment::Setup()
 
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
-	//glGenQueries(3, TimingQueries);
+	glGenQueries(1, TimingQueries);
 
 	return StatusCode::PASS;
 }
@@ -148,6 +148,7 @@ StatusCode RayCastingExperiment::Setup()
 void RayCastingExperiment::Render()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glBeginQuery(GL_TIME_ELAPSED, TimingQueries[0]);
 	Volumizer.Activate();
 	glBindTextureUnit(0, SDFVolume);
 	glBindSampler(0, Sampler);
@@ -155,4 +156,8 @@ void RayCastingExperiment::Render()
 	VolumeInfo.Bind(GL_UNIFORM_BUFFER, 1);
 	ScreenInfo.Bind(GL_UNIFORM_BUFFER, 2);
 	glDrawArrays(GL_POINTS, 0, 16 * 16 * 16);
+	glEndQuery(GL_TIME_ELAPSED);
+	GLuint DrawTime;
+	glGetQueryObjectuiv(TimingQueries[0], GL_QUERY_RESULT, &DrawTime);
+	std::cout << "Timings (ns): " << DrawTime << "\n";
 }
