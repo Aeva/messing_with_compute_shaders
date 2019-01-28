@@ -136,6 +136,7 @@ StatusCode SetupGLFW()
 
 StatusCode DemoSetup ()
 {
+	glUseProgram(0);
 	RETURN_ON_FAIL(RayCastingExperiment::Setup());
 	return StatusCode::PASS;
 }

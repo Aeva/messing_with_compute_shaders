@@ -3,9 +3,9 @@
 const float Phi = (1.0 + sqrt(5.0)) * 0.5;
 const vec3 UnitScale = vec3(1.0/sqrt(pow((Phi + 1.0) / 3.0, 2.0) * 3.0));
 
-#define LR(Sign1, Sign2) vec3(PhiPart * Phi, 0, OnePart) * UnitScale
-#define TB(Sign1, Sign2) vec3(OnePart, PhiPart * Phi, 0) * UnitScale
-#define NF(Sign1, Sign2) vec3(0, OnePart, PhiPart * Phi) * UnitScale
+#define LR(PhiPart, OnePart) vec3(PhiPart * Phi, 0, OnePart) * UnitScale
+#define TB(PhiPart, OnePart) vec3(OnePart, PhiPart * Phi, 0) * UnitScale
+#define NF(PhiPart, OnePart) vec3(0, OnePart, PhiPart * Phi) * UnitScale
 
 #define RP LR(1, 1)
 #define RM LR(1, -1)

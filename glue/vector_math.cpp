@@ -41,6 +41,15 @@ inline void Normalize(GLfloat Vector[Size])
 }
 
 
+void IdentityMatrix(GLfloat Out[16])
+{
+	for (int i=0; i<16; ++i)
+	{
+		Out[i] = (i % 5 == 0) ? 1.0 : 0.0;
+	}
+}
+
+
 void ViewMatrix(GLfloat Out[16], const GLfloat Origin[3], const GLfloat Focus[3], const GLfloat Up[3])
 {
 	GLfloat AxisZ[3] = {
@@ -112,6 +121,20 @@ void PerspectiveMatrix(GLfloat Out[16])
 	Out[10] = ScaleZ;
 	Out[11] = 1.0;
 	Out[14] = OffsetZ;
+}
+
+
+void TransposeMatrix(GLfloat Out[16], GLfloat Original[16])
+{
+	for (int y=0; y<4; ++y)
+	{
+		for (int x=0; x<4; ++x)
+		{
+			const int IndexIn = x * 4 + y;
+			const int IndexOut = y * 4 + x;
+			Out[IndexOut] = Original[IndexIn];
+		}
+	}
 }
 
 
