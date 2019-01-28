@@ -2,7 +2,7 @@
 #include <iostream>
 #include "errors.h"
 #include "gl_boilerplate.h"
-#include "../sdf_raycaster.h"
+#include "../csg_thing.h"
 
 #if RENDERDOC_CAPTURE_AND_QUIT
 #include "../renderdoc.h"
@@ -137,14 +137,14 @@ StatusCode SetupGLFW()
 StatusCode DemoSetup ()
 {
 	glUseProgram(0);
-	RETURN_ON_FAIL(RayCastingExperiment::Setup());
+	RETURN_ON_FAIL(RenderingExperiment::Setup());
 	return StatusCode::PASS;
 }
 
 
 void DrawFrame()
 {
-	RayCastingExperiment::Render();
+	RenderingExperiment::Render();
 
 	glfwSwapBuffers(Window);
 	glfwPollEvents();

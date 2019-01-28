@@ -2,9 +2,9 @@
 #include <iostream>
 #include "glue/vector_math.h"
 #include "glue/blob_builder.h"
-#include "sdf_raycaster.h"
+#include "csg_thing.h"
 
-using namespace RayCastingExperiment;
+using namespace RenderingExperiment;
 
 ShaderPipeline DrawSphere;
 
@@ -63,7 +63,7 @@ void SetupScreenInfo()
 }
 
 
-StatusCode RayCastingExperiment::Setup()
+StatusCode RenderingExperiment::Setup()
 {
 	RETURN_ON_FAIL(DrawSphere.Setup(
 		{{GL_VERTEX_SHADER, "shaders/draw_sphere.vs.glsl"},
@@ -89,7 +89,7 @@ StatusCode RayCastingExperiment::Setup()
 }
 
 
-void RayCastingExperiment::Render()
+void RenderingExperiment::Render()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glBeginQuery(GL_TIME_ELAPSED, TimingQuery);

@@ -3,7 +3,7 @@
 #include "glue/gl_boilerplate.h"
 
 
-namespace RayCastingExperiment
+namespace RenderingExperiment
 {
 	StatusCode Setup();
 	void Render();
