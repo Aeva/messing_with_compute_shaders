@@ -11,6 +11,8 @@ ShaderPipeline DrawSphere;
 Buffer SphereInfo[4];
 Buffer ScreenInfo;
 
+GLuint TimingQuery;
+
 
 void FillSphere(int Index, float X, float Y, float Z, float Radius)
 {
@@ -81,7 +83,7 @@ StatusCode RayCastingExperiment::Setup()
 	glDepthFunc(GL_LEQUAL);
 	glClearDepth(1);
 
-	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+	glGenQueries(1, &TimingQuery);
 
 	return StatusCode::PASS;
 }
@@ -90,6 +92,7 @@ StatusCode RayCastingExperiment::Setup()
 void RayCastingExperiment::Render()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glBeginQuery(GL_TIME_ELAPSED, TimingQuery);
 	DrawSphere.Activate();
 	ScreenInfo.Bind(GL_UNIFORM_BUFFER, 1);
 	for (int i=0; i<4; ++i)
@@ -97,4 +100,8 @@ void RayCastingExperiment::Render()
 		SphereInfo[i].Bind(GL_UNIFORM_BUFFER, 0);
 		glDrawArrays(GL_TRIANGLES, 0, 20 * 3);
 	}
+	glEndQuery(GL_TIME_ELAPSED);
+	GLuint DrawTime;
+	glGetQueryObjectuiv(TimingQuery, GL_QUERY_RESULT, &DrawTime);
+	std::cout << "Timings (ns): " << DrawTime << "\n";
 }
