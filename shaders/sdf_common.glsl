@@ -1,5 +1,6 @@
 --------------------------------------------------------------------------------
 
+/*
 layout(std140, binding = 1)
 uniform VolumeInfoBlock
 {
@@ -37,6 +38,7 @@ vec3 VolumeWorldToUVW(vec3 World)
 {
 	return clamp((World - VolumeMin.xyz) / VolumeExtent.xyz, 0.0, 1.0);
 }
+*/
 
 // - - - - CSG operators - - - -
 
@@ -66,7 +68,7 @@ float SphereSDF(vec3 Test, vec3 Origin, float Radius)
 
 float HelloWorldSDF(vec3 Test)
 {
-	float Solid = SphereSDF(Test, VolumeOrigin.xyz, VolumeRadius);
+	float Solid = SphereSDF(Test, vec3(300, 300, 300), 200);
 	float Cutaway1 = SphereSDF(Test, vec3(250, 250, 400), 150);
 	float Cutaway2 = SphereSDF(Test, vec3(400, 400, 400), 80);
 	float Cutaway3 = SphereSDF(Test, vec3(290, 290, 200), 100);

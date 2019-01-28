@@ -17,9 +17,9 @@ void SetupSphereInfo()
 	const size_t TotalSize = 16;
 	BlobBuilder Blob(TotalSize);
 	// Sphere Origin
-	Blob.Write(400.0f);
-	Blob.Write(400.0f);
-	Blob.Write(400.0f);
+	Blob.Write(300.0f);
+	Blob.Write(300.0f);
+	Blob.Write(300.0f);
 	// Sphere Radius
 	Blob.Write(200.0f);
 	SphereInfo.Initialize(Blob.Data(), TotalSize);

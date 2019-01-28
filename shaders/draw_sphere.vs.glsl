@@ -11,7 +11,7 @@ void main()
 	//gl_Position = ViewToClip * WorldToView * vec4(WorldPosition, 1.0);
 
 	const vec2 ScreenUV = WorldPosition.xy * ScreenSize.zw;
-	const vec2 Clip = vec2(ScreenUV.x, 1.0 - ScreenUV.y) - vec2(0.5) * vec2(2.0);
+	const vec2 Clip = mix(vec2(-1, -1), vec2(1, 1), ScreenUV);
 	const float Depth = 1/WorldPosition.z;
 	gl_Position = vec4(Clip.xy, Depth, 1.0);
 }
