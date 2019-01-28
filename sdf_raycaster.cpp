@@ -8,21 +8,31 @@ using namespace RayCastingExperiment;
 
 ShaderPipeline DrawSphere;
 
-Buffer SphereInfo;
+Buffer SphereInfo[4];
 Buffer ScreenInfo;
 
 
-void SetupSphereInfo()
+void FillSphere(int Index, float X, float Y, float Z, float Radius)
 {
 	const size_t TotalSize = 16;
 	BlobBuilder Blob(TotalSize);
 	// Sphere Origin
-	Blob.Write(300.0f);
-	Blob.Write(300.0f);
-	Blob.Write(300.0f);
+	Blob.Write(X);
+	Blob.Write(Y);
+	Blob.Write(Z);
 	// Sphere Radius
-	Blob.Write(200.0f);
-	SphereInfo.Initialize(Blob.Data(), TotalSize);
+	Blob.Write(Radius);
+	SphereInfo[Index].Initialize(Blob.Data(), TotalSize);
+}
+
+
+void SetupSphereInfo()
+{
+	// negative radius indicates cutaway
+	FillSphere(0, 300, 300, 300, 200);
+	FillSphere(1, 250, 250, 400, -150);
+	FillSphere(2, 400, 400, 400, -80);
+	FillSphere(3, 290, 290, 200, -100);
 }
 
 
@@ -81,7 +91,10 @@ void RayCastingExperiment::Render()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	DrawSphere.Activate();
-	SphereInfo.Bind(GL_UNIFORM_BUFFER, 0);
 	ScreenInfo.Bind(GL_UNIFORM_BUFFER, 1);
-	glDrawArrays(GL_TRIANGLES, 0, 20 * 3);
+	for (int i=0; i<4; ++i)
+	{
+		SphereInfo[i].Bind(GL_UNIFORM_BUFFER, 0);
+		glDrawArrays(GL_TRIANGLES, 0, 20 * 3);
+	}
 }

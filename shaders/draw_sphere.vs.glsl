@@ -6,7 +6,7 @@ out vec4 WorldPosition;
 
 void main()
 {
-	const vec3 LocalPosition = Icosahedron[gl_VertexID] * vec3(SphereParams.w);
+	const vec3 LocalPosition = Icosahedron[gl_VertexID] * vec3(abs(SphereParams.w));
 	WorldPosition = vec4(LocalPosition + SphereParams.xyz, 1);
 	//gl_Position = ViewToClip * WorldToView * vec4(WorldPosition, 1.0);
 
