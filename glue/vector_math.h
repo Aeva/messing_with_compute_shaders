@@ -7,6 +7,8 @@
 
 void IdentityMatrix(GLfloat Out[16]);
 
+void MultiplyMatrices(GLfloat Out[16], GLfloat LHS[16], GLfloat RHS[16]);
+
 void ViewMatrix(GLfloat Out[16], const GLfloat Origin[3], const GLfloat Focus[3], const GLfloat Up[3]);
 void ViewMatrix(GLfloat Out[16], const GLfloat Origin[3], const GLfloat Focus[3]);
 

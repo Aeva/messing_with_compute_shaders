@@ -41,12 +41,53 @@ inline void Normalize(GLfloat Vector[Size])
 }
 
 
+#define FILL_IDENTITY(Out) \
+	Out[0] = 1.0; \
+	Out[1] = 0.0; \
+	Out[2] = 0.0; \
+	Out[3] = 0.0; \
+	Out[4] = 0.0; \
+	Out[5] = 1.0; \
+	Out[6] = 0.0; \
+	Out[7] = 0.0; \
+	Out[8] = 0.0; \
+	Out[9] = 0.0; \
+	Out[10] = 1.0; \
+	Out[11] = 0.0; \
+	Out[12] = 0.0; \
+	Out[13] = 0.0; \
+	Out[14] = 0.0; \
+	Out[15] = 1.0;
+
+
 void IdentityMatrix(GLfloat Out[16])
 {
-	for (int i=0; i<16; ++i)
+	FILL_IDENTITY(Out);
+}
+
+
+void MultiplyMatrices(GLfloat Out[16], GLfloat LHS[16], GLfloat RHS[16])
+{
+	for (int y=0; y<4; ++y)
 	{
-		Out[i] = (i % 5 == 0) ? 1.0 : 0.0;
+		for (int x=0; x<4; ++x)
+    	{
+            Out[x * 4 + y] = \
+		    LHS[y +  0] * RHS[x * 4 + 0] + \
+		    LHS[y +  4] * RHS[x * 4 + 1] + \
+		    LHS[y +  8] * RHS[x * 4 + 2] + \
+		    LHS[y + 12] * RHS[x * 4 + 3];
+        }
 	}
+}
+
+
+void TranslationMatrix(GLfloat Out[16], GLfloat x, GLfloat y, GLfloat z)
+{
+	FILL_IDENTITY(Out);
+	Out[12] = x;
+	Out[13] = y;
+	Out[14] = z;
 }
 
 
@@ -164,3 +205,6 @@ void PrintMatrix(GLfloat Matrix[16], const char* MatrixName)
 #undef COL
 #endif
 }
+
+#undef FILL_IDENTITY
+
