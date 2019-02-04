@@ -16,7 +16,9 @@ GLuint TimingQuery;
 
 void FillSphere(int Index, float X, float Y, float Z, float Radius)
 {
-	const size_t TotalSize = 16;
+	const size_t Vec4Size = sizeof(GLfloat[4]);
+	const size_t Mat4Size = sizeof(GLfloat[16]);
+	const size_t TotalSize = Vec4Size + Mat4Size;
 	BlobBuilder Blob(TotalSize);
 	// Sphere Origin
 	Blob.Write(X);
@@ -24,6 +26,9 @@ void FillSphere(int Index, float X, float Y, float Z, float Radius)
 	Blob.Write(Z);
 	// Sphere Radius
 	Blob.Write(Radius);
+	// World Matrix
+	auto WorldMatrix = Blob.Advance<GLfloat[16]>();
+	IdentityMatrix(*WorldMatrix);
 	SphereInfo[Index].Initialize(Blob.Data(), TotalSize);
 }
 
@@ -42,7 +47,7 @@ void SetupScreenInfo()
 {
 	const size_t Vec4Size = sizeof(GLfloat[4]);
 	const size_t Mat4Size = sizeof(GLfloat[16]);
-	const size_t TotalSize = Vec4Size + Mat4Size * 4;
+	const size_t TotalSize = Vec4Size + Mat4Size * 2;
 	BlobBuilder Blob(TotalSize);
 	// ScreenSize
 	const float InvScreenWidth = 1.0/float(ScreenWidth);
@@ -51,14 +56,12 @@ void SetupScreenInfo()
 	Blob.Write(float(ScreenHeight));
 	Blob.Write(InvScreenWidth);
 	Blob.Write(InvScreenHeight);
-	// WorldToView
-	IdentityMatrix(*Blob.Advance<GLfloat[16]>());
-	// ViewToWorld
-	IdentityMatrix(*Blob.Advance<GLfloat[16]>());
-	// ViewToClip
-	IdentityMatrix(*Blob.Advance<GLfloat[16]>());
-	// ClipToView
-	IdentityMatrix(*Blob.Advance<GLfloat[16]>());
+	// View Matrix
+	auto ViewMatrix = Blob.Advance<GLfloat[16]>();
+	IdentityMatrix(*ViewMatrix);
+	// Inverse View Matrix
+	auto InvViewMatrix = Blob.Advance<GLfloat[16]>();
+	TransposeMatrix(*InvViewMatrix, *ViewMatrix);
 	ScreenInfo.Initialize(Blob.Data(), TotalSize);
 }
 

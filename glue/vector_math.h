@@ -18,7 +18,6 @@ void ScaleMatrix(GLfloat Out[16], GLfloat ScaleX, GLfloat ScaleY, GLfloat ScaleZ
 void ViewMatrix(GLfloat Out[16], const GLfloat Origin[3], const GLfloat Focus[3], const GLfloat Up[3]);
 void ViewMatrix(GLfloat Out[16], const GLfloat Origin[3], const GLfloat Focus[3]);
 
-void OrthographicMatrix(GLfloat Out[16]);
 void PerspectiveMatrix(GLfloat Out[16]);
 
 void PrintMatrix(GLfloat Matrix[16], const char* MatrixName);
