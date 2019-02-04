@@ -9,6 +9,9 @@
 #include "vector_math.h"
 
 
+const double ToRadians = M_PI / 180.0;
+
+
 inline void CrossProduct(GLfloat Out[3], const GLfloat LHS[3], const GLfloat RHS[3])
 {
 	Out[0] = LHS[1] * RHS[2] - LHS[2] * RHS[1];
@@ -82,12 +85,71 @@ void MultiplyMatrices(GLfloat Out[16], GLfloat LHS[16], GLfloat RHS[16])
 }
 
 
-void TranslationMatrix(GLfloat Out[16], GLfloat x, GLfloat y, GLfloat z)
+void TransposeMatrix(GLfloat Out[16], GLfloat Original[16])
+{
+	for (int y=0; y<4; ++y)
+	{
+		for (int x=0; x<4; ++x)
+		{
+			const int IndexIn = x * 4 + y;
+			const int IndexOut = y * 4 + x;
+			Out[IndexOut] = Original[IndexIn];
+		}
+	}
+}
+
+
+void TranslationMatrix(GLfloat Out[16], GLfloat PositionX, GLfloat PositionY, GLfloat PositionZ)
 {
 	FILL_IDENTITY(Out);
-	Out[12] = x;
-	Out[13] = y;
-	Out[14] = z;
+	Out[12] = PositionX;
+	Out[13] = PositionY;
+	Out[14] = PositionZ;
+}
+
+
+void XRotationMatrix(GLfloat Out[16], GLfloat RotateX)
+{
+	const GLfloat SinX = sin(RotateX * ToRadians);
+	const GLfloat CosX = cos(RotateX * ToRadians);
+	FILL_IDENTITY(Out);
+	Out[5] = CosX;
+	Out[6] = -SinX;
+	Out[9] = SinX;
+	Out[10] = CosX;
+}
+
+
+void YRotationMatrix(GLfloat Out[16], GLfloat RotateY)
+{
+	const GLfloat SinY = sin(RotateY * ToRadians);
+	const GLfloat CosY = cos(RotateY * ToRadians);
+	FILL_IDENTITY(Out);
+	Out[0] = CosY;
+	Out[2] = SinY;
+	Out[8] = -SinY;
+	Out[10] = CosY;
+}
+
+
+void ZRotationMatrix(GLfloat Out[16], GLfloat RotateZ)
+{
+	const GLfloat SinZ = sin(RotateZ * ToRadians);
+	const GLfloat CosZ = cos(RotateZ * ToRadians);
+	FILL_IDENTITY(Out);
+	Out[0] = CosZ;
+	Out[1] = SinZ;
+	Out[4] = -SinZ;
+	Out[5] = CosZ;
+}
+
+
+void ScaleMatrix(GLfloat Out[16], GLfloat ScaleX, GLfloat ScaleY, GLfloat ScaleZ)
+{
+	FILL_IDENTITY(Out);
+	Out[0] = ScaleX;
+	Out[5] = ScaleY;
+	Out[10] = ScaleZ;
 }
 
 
@@ -131,6 +193,11 @@ void ViewMatrix(GLfloat Out[16], const GLfloat Origin[3], const GLfloat Focus[3]
 }
 
 
+void OrthographicMatrix(GLfloat Out[16])
+{
+}
+
+
 void PerspectiveMatrix(GLfloat Out[16])
 {
 	const GLfloat FieldOfView = 1.0 / (45.0 * 0.0174533 * 0.5); // Radians
@@ -162,20 +229,6 @@ void PerspectiveMatrix(GLfloat Out[16])
 	Out[10] = ScaleZ;
 	Out[11] = 1.0;
 	Out[14] = OffsetZ;
-}
-
-
-void TransposeMatrix(GLfloat Out[16], GLfloat Original[16])
-{
-	for (int y=0; y<4; ++y)
-	{
-		for (int x=0; x<4; ++x)
-		{
-			const int IndexIn = x * 4 + y;
-			const int IndexOut = y * 4 + x;
-			Out[IndexOut] = Original[IndexIn];
-		}
-	}
 }
 
 
