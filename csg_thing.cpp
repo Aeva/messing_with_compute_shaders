@@ -17,8 +17,7 @@ GLuint TimingQuery;
 void FillSphere(int Index, float X, float Y, float Z, float Radius)
 {
 	const size_t Vec4Size = sizeof(GLfloat[4]);
-	const size_t Mat4Size = sizeof(GLfloat[16]);
-	const size_t TotalSize = Vec4Size + Mat4Size;
+	const size_t TotalSize = Vec4Size;
 	BlobBuilder Blob(TotalSize);
 	// Sphere Origin
 	Blob.Write(X);
@@ -26,9 +25,6 @@ void FillSphere(int Index, float X, float Y, float Z, float Radius)
 	Blob.Write(Z);
 	// Sphere Radius
 	Blob.Write(Radius);
-	// World Matrix
-	auto WorldMatrix = Blob.Advance<GLfloat[16]>();
-	IdentityMatrix(*WorldMatrix);
 	SphereInfo[Index].Initialize(Blob.Data(), TotalSize);
 }
 
@@ -36,10 +32,10 @@ void FillSphere(int Index, float X, float Y, float Z, float Radius)
 void SetupSphereInfo()
 {
 	// negative radius indicates cutaway
-	FillSphere(0, 300, 300, 300, 200);
-	FillSphere(1, 250, 250, 400, -150);
-	FillSphere(2, 400, 400, 400, -80);
-	FillSphere(3, 290, 290, 200, -100);
+	FillSphere(0, 0, 0, 0, 200);
+	FillSphere(1, -50, -50, 100, -150);
+	FillSphere(2, 100, 100, 100, -80);
+	FillSphere(3, -10, -10, -100, -100);
 }
 
 
@@ -56,12 +52,14 @@ void SetupScreenInfo()
 	Blob.Write(float(ScreenHeight));
 	Blob.Write(InvScreenWidth);
 	Blob.Write(InvScreenHeight);
-	// View Matrix
+	// View
 	auto ViewMatrix = Blob.Advance<GLfloat[16]>();
-	IdentityMatrix(*ViewMatrix);
-	// Inverse View Matrix
 	auto InvViewMatrix = Blob.Advance<GLfloat[16]>();
-	TransposeMatrix(*InvViewMatrix, *ViewMatrix);
+	const float ViewX = 300;
+	const float ViewY = 300;
+	const float ViewZ = 300;
+	TranslationMatrix(*ViewMatrix, ViewX, ViewY, ViewZ);
+	TranslationMatrix(*InvViewMatrix, -ViewX, -ViewY, -ViewZ);
 	ScreenInfo.Initialize(Blob.Data(), TotalSize);
 }
 
