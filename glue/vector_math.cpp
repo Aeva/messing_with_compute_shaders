@@ -193,42 +193,30 @@ void ViewMatrix(GLfloat Out[16], const GLfloat Origin[3], const GLfloat Focus[3]
 }
 
 
-void OrthographicMatrix(GLfloat Out[16])
+void OrthographicMatrix(GLfloat Out[16], GLfloat Top, GLfloat Left, GLfloat Bottom, GLfloat Right, GLfloat NearPlane)
 {
+	FILL_IDENTITY(Out);
+	Out[0] = 2/(Right - Left);
+	Out[5] = 2/(Top - Bottom);
+	// See: "Infinite Perspective Matrix" in http://www.geometry.caltech.edu/pubs/UD12.pdf
+	Out[10] = 1.0;
+	Out[11] = 1.0;
+	Out[14] = -2 * NearPlane;
 }
 
 
-void PerspectiveMatrix(GLfloat Out[16])
+void PerspectiveMatrix(GLfloat Out[16], GLfloat FOV, GLfloat NearPlane)
 {
-	const GLfloat FieldOfView = 1.0 / (45.0 * 0.0174533 * 0.5); // Radians
 	const GLfloat AspectRatio = (GLfloat)ScreenWidth / (GLfloat)ScreenHeight;
-	const GLfloat NearPlane = 0.1; // Is this a reasonable default?
-	const GLfloat FarPlane = 1000;
-	const GLfloat DepthRange = FarPlane - NearPlane;
-
-#if DEBUG_BUILD
-	std::cout << "width: " << ScreenWidth << "\n";
-	std::cout << "height: " << ScreenHeight << "\n";
-	std::cout << "fov: " << FieldOfView << "\n";
-	std::cout << "aspect: " << AspectRatio << "\n";
-	std::cout << "near: " << NearPlane << "\n";
-	std::cout << "far: " << FarPlane << "\n";
-#endif
-
-	const GLfloat ScaleX = (1 / AspectRatio) * FieldOfView;
-	const GLfloat ScaleY = FieldOfView;
-	const GLfloat ScaleZ = FarPlane / DepthRange;
-	const GLfloat OffsetZ = -(FarPlane + NearPlane) / DepthRange;
-
-	for (int i=0; i<16; ++i)
-	{
-		Out[i] = 0;	
-	}
+	const GLfloat ScaleY = 1.0 / tan(FOV * ToRadians);
+	const GLfloat ScaleX = ScaleY / AspectRatio;
+	FILL_IDENTITY(Out);
 	Out[0] = ScaleX;
 	Out[5] = ScaleY;
-	Out[10] = ScaleZ;
+	// See: "Infinite Perspective Matrix" in http://www.geometry.caltech.edu/pubs/UD12.pdf
+	Out[10] = 1.0;
 	Out[11] = 1.0;
-	Out[14] = OffsetZ;
+	Out[14] = -2 * NearPlane;
 }
 
 
