@@ -99,6 +99,56 @@ void TransposeMatrix(GLfloat Out[16], GLfloat Original[16])
 }
 
 
+void InvertMatrix(GLfloat Out[16], GLfloat In[16])
+{
+	// This implementation of inverting a 4x4 matrix was adapted from gl-matrix:
+	// https://github.com/toji/gl-matrix/tree/bd3307196563fbb331b40fc6ebecbbfcc2a4722c
+	const GLfloat Tmp[12] = {
+		(In[0] * In[5] - In[1] * In[4]),
+		(In[0] * In[6] - In[2] * In[4]),
+		(In[0] * In[7] - In[3] * In[4]),
+		(In[1] * In[6] - In[2] * In[5]),
+		(In[1] * In[7] - In[3] * In[5]),
+		(In[2] * In[7] - In[3] * In[6]),
+		(In[8] * In[13] - In[9] * In[12]),
+		(In[8] * In[14] - In[10] * In[12]),
+		(In[8] * In[15] - In[11] * In[12]),
+		(In[9] * In[14] - In[10] * In[13]),
+		(In[9] * In[15] - In[11] * In[13]),
+		(In[10] * In[15] - In[11] * In[14])
+	};
+
+	GLfloat Determinant = Tmp[0] * Tmp[11] - Tmp[1] * Tmp[10] + Tmp[2] * Tmp[9] + Tmp[3] * Tmp[8] - Tmp[4] * Tmp[7] + Tmp[5] * Tmp[6];
+
+	if (Determinant != 0) {
+		Determinant = 1.0 / Determinant;
+		Out[0] = (In[5] * Tmp[11] - In[6] * Tmp[10] + In[7] * Tmp[9]) * Determinant;
+		Out[1] = (In[2] * Tmp[10] - In[1] * Tmp[11] - In[3] * Tmp[9]) * Determinant;
+		Out[2] = (In[13] * Tmp[5] - In[14] * Tmp[4] + In[15] * Tmp[3]) * Determinant;
+		Out[3] = (In[10] * Tmp[4] - In[9] * Tmp[5] - In[11] * Tmp[3]) * Determinant;
+		Out[4] = (In[6] * Tmp[8] - In[4] * Tmp[11] - In[7] * Tmp[7]) * Determinant;
+		Out[5] = (In[0] * Tmp[11] - In[2] * Tmp[8] + In[3] * Tmp[7]) * Determinant;
+		Out[6] = (In[14] * Tmp[2] - In[12] * Tmp[5] - In[15] * Tmp[1]) * Determinant;
+		Out[7] = (In[8] * Tmp[5] - In[10] * Tmp[2] + In[11] * Tmp[1]) * Determinant;
+		Out[8] = (In[4] * Tmp[10] - In[5] * Tmp[8] + In[7] * Tmp[6]) * Determinant;
+		Out[9] = (In[1] * Tmp[8] - In[0] * Tmp[10] - In[3] * Tmp[6]) * Determinant;
+		Out[10] = (In[12] * Tmp[4] - In[13] * Tmp[2] + In[15] * Tmp[0]) * Determinant;
+		Out[11] = (In[9] * Tmp[2] - In[8] * Tmp[4] - In[11] * Tmp[0]) * Determinant;
+		Out[12] = (In[5] * Tmp[7] - In[4] * Tmp[9] - In[6] * Tmp[6]) * Determinant;
+		Out[13] = (In[0] * Tmp[9] - In[1] * Tmp[7] + In[2] * Tmp[6]) * Determinant;
+		Out[14] = (In[13] * Tmp[1] - In[12] * Tmp[3] - In[14] * Tmp[0]) * Determinant;
+		Out[15] = (In[8] * Tmp[3] - In[9] * Tmp[1] + In[10] * Tmp[0]) * Determinant;
+	}
+	else
+	{
+#if DEBUG_BUILD
+		std::cout << "Matrix's determinant is zero, so returning the identity instead of inverting.";
+#endif
+		FILL_IDENTITY(Out);
+	}
+}
+
+
 void TranslationMatrix(GLfloat Out[16], GLfloat PositionX, GLfloat PositionY, GLfloat PositionZ)
 {
 	FILL_IDENTITY(Out);

@@ -8,6 +8,7 @@
 void IdentityMatrix(GLfloat Out[16]);
 void MultiplyMatrices(GLfloat Out[16], GLfloat LHS[16], GLfloat RHS[16]);
 void TransposeMatrix(GLfloat Out[16], GLfloat Original[16]);
+void InvertMatrix(GLfloat Out[16], GLfloat Original[16]);
 
 void TranslationMatrix(GLfloat Out[16], GLfloat PositionX, GLfloat PositionY, GLfloat PositionZ);
 void XRotationMatrix(GLfloat Out[16], GLfloat RotateX);
