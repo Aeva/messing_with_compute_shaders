@@ -243,18 +243,6 @@ void ViewMatrix(GLfloat Out[16], const GLfloat Origin[3], const GLfloat Focus[3]
 }
 
 
-void OrthographicMatrix(GLfloat Out[16], GLfloat Top, GLfloat Left, GLfloat Bottom, GLfloat Right, GLfloat NearPlane)
-{
-	FILL_IDENTITY(Out);
-	Out[0] = 2/(Right - Left);
-	Out[5] = 2/(Top - Bottom);
-	// See: "Infinite Perspective Matrix" in http://www.geometry.caltech.edu/pubs/UD12.pdf
-	Out[10] = 1.0;
-	Out[11] = 1.0;
-	Out[14] = -2 * NearPlane;
-}
-
-
 void PerspectiveMatrix(GLfloat Out[16], GLfloat FOV, GLfloat NearPlane)
 {
 	const GLfloat AspectRatio = (GLfloat)ScreenWidth / (GLfloat)ScreenHeight;

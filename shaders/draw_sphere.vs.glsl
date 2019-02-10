@@ -1,27 +1,46 @@
-prepend: shaders/icosahedron.glsl
 prepend: shaders/draw_sphere.etc.glsl
 --------------------------------------------------------------------------------
 
+const vec2 VertexData[12] = {
+	// Front Face
+	vec2( 1.0,  1.0),
+	vec2(-1.0,  1.0),
+	vec2(-1.0, -1.0),
+	vec2(-1.0, -1.0),
+	vec2( 1.0, -1.0),
+	vec2( 1.0,  1.0),
+	// Back Face
+	vec2(-1.0, -1.0),
+	vec2(-1.0,  1.0),
+	vec2( 1.0,  1.0),
+	vec2( 1.0,  1.0),
+	vec2( 1.0, -1.0),
+	vec2(-1.0, -1.0)
+};
+
+
 out vec4 ViewCenter;
 out vec4 ViewPosition;
-out vec3 SpherePosition;
+out vec2 SpherePosition;
 
 
 void main()
 {
-	SpherePosition = Icosahedron[gl_VertexID] * vec3(1, 1, 0);
-
-	// orthographic version
+	SpherePosition = VertexData[gl_VertexID];
 	ViewCenter = ViewMatrix * vec4(SphereParams.xyz, 1);
-	ViewPosition = vec4(SpherePosition.xyz * vec3(abs(SphereParams.w)) + ViewCenter.xyz, 1);
-	const vec2 Clip = mix(vec2(-1, -1), vec2(1, 1), ViewPosition.xy * ScreenSize.zw);
-	const float Depth = 1/ViewPosition.z;
-	gl_Position = vec4(Clip.xy, Depth, 1.0);
 
-	// perspective version ish
-	/*
-	const vec4 WorldOffset = WorldMatrix * vec4(SphereParams.xyz, 1);
-	WorldPosition = vec4(SpherePosition.xyz * vec3(abs(SphereParams.w)) + SphereParams.xyz, 1);
-	const vec4 ViewPosition = ViewMatrix * WorldPosition;
-	*/
+	if (ViewToClip.z != 0.0)
+	{
+		// Orthographic Rendering
+		ViewPosition = vec4(vec3(SpherePosition.xy, 0.0) * vec3(abs(SphereParams.w)) + ViewCenter.xyz, 1);
+		gl_Position = vec4((ViewPosition.xy + ViewToClip.xy) * ViewToClip.zw, 1.0/ViewPosition.z, 1.0);
+	}
+	else
+	{
+		/*
+		// Perspective Rendering ...?
+		ViewPosition = ViewMatrix * vec4(SpherePosition.xyz * vec3(abs(SphereParams.w)) + SphereParams.xyz, 1.0);
+		gl_Position = PerspectiveMatrix * ViewPosition;
+		*/
+	}
 }

@@ -4,7 +4,7 @@ prepend: shaders/sdf_common.glsl
 
 in vec4 ViewCenter;
 in vec4 ViewPosition;
-in vec3 SpherePosition;
+in vec2 SpherePosition;
 out vec4 Color;
 
 
@@ -16,7 +16,7 @@ vec3 Paint(vec3 Position, vec3 Normal, float SDF)
 
 void main()
 {
-	const float BisectDot = dot(SpherePosition.xy, SpherePosition.xy);
+	const float BisectDot = dot(SpherePosition, SpherePosition);
 	if (BisectDot > 1.0)
 	{
 		discard;
