@@ -41,7 +41,7 @@ void SetupSphereInfo()
 }
 
 
-void FillBox(int Index, float X, float Y, float Z, float ExtentX, float ExtentY, float ExtentZ)
+void FillBox(int Index, float X, float Y, float Z, float ExtentX, float ExtentY, float ExtentZ, float Mode)
 {
 	const size_t Vec4Size = sizeof(GLfloat[4]);
 	const size_t Mat4Size = sizeof(GLfloat[16]);
@@ -50,7 +50,7 @@ void FillBox(int Index, float X, float Y, float Z, float ExtentX, float ExtentY,
 	Blob.Write(ExtentX);
 	Blob.Write(ExtentY);
 	Blob.Write(ExtentZ);
-	Blob.Write(1.0f);
+	Blob.Write(Mode);
 	auto WorldMatrix = Blob.Advance<GLfloat[16]>();
 	auto InvWorldMatrix = Blob.Advance<GLfloat[16]>();
 	YRotationMatrix(*WorldMatrix, 45.0);
@@ -61,7 +61,7 @@ void FillBox(int Index, float X, float Y, float Z, float ExtentX, float ExtentY,
 
 void SetupBoxInfo()
 {
-	FillBox(0, 0, 0, 0, 100, 400, 100);
+	FillBox(0, 0, 0, 0, 100, 400, 100, -1);
 }
 
 

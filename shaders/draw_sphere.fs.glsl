@@ -31,7 +31,7 @@ void main()
 		const vec3 ViewNormal = normalize(NewViewPosition.xyz - ViewCenter.xyz);
 		const vec3 WorldNormal = normalize(WorldPosition.xyz - SphereParams.xyz) * (SphereParams.w < 0 ? vec3(-1) : vec3(1));
 		const float SDF = HelloWorldSDF(WorldPosition.xyz);
-		if (SDF > 0.001)
+		if (SDF > DiscardThreshold)
 		{
 			discard;
 		}

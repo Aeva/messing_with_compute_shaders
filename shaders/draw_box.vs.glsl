@@ -2,39 +2,50 @@ prepend: shaders/draw_box.etc.glsl
 --------------------------------------------------------------------------------
 
 const vec3 CubeStuff[36] = {
+	// -X
 	vec3(-0.5,-0.5,-0.5),
 	vec3(-0.5,-0.5, 0.5),
 	vec3(-0.5, 0.5, 0.5),
-	vec3( 0.5, 0.5,-0.5),
-	vec3(-0.5,-0.5,-0.5),
-	vec3(-0.5, 0.5,-0.5),
-	vec3( 0.5,-0.5, 0.5),
-	vec3(-0.5,-0.5,-0.5),
-	vec3( 0.5,-0.5,-0.5),
-	vec3( 0.5, 0.5,-0.5),
-	vec3( 0.5,-0.5,-0.5),
-	vec3(-0.5,-0.5,-0.5),
 	vec3(-0.5,-0.5,-0.5),
 	vec3(-0.5, 0.5, 0.5),
 	vec3(-0.5, 0.5,-0.5),
+
+	// X
+	vec3( 0.5, 0.5, 0.5),
+	vec3( 0.5,-0.5,-0.5),
+	vec3( 0.5, 0.5,-0.5),
+	vec3( 0.5,-0.5,-0.5),
+	vec3( 0.5, 0.5, 0.5),
+	vec3( 0.5,-0.5, 0.5),
+
+	// -Y
+	vec3( 0.5,-0.5, 0.5),
+	vec3(-0.5,-0.5,-0.5),
+	vec3( 0.5,-0.5,-0.5),
 	vec3( 0.5,-0.5, 0.5),
 	vec3(-0.5,-0.5, 0.5),
 	vec3(-0.5,-0.5,-0.5),
+
+	// Y
+	vec3( 0.5, 0.5, 0.5),
+	vec3( 0.5, 0.5,-0.5),
+	vec3(-0.5, 0.5,-0.5),
+	vec3( 0.5, 0.5, 0.5),
+	vec3(-0.5, 0.5,-0.5),
+	vec3(-0.5, 0.5, 0.5),
+
+	// -Z
+	vec3( 0.5, 0.5,-0.5),
+	vec3(-0.5,-0.5,-0.5),
+	vec3(-0.5, 0.5,-0.5),
+	vec3( 0.5, 0.5,-0.5),
+	vec3( 0.5,-0.5,-0.5),
+	vec3(-0.5,-0.5,-0.5),
+
+	// Z
 	vec3(-0.5, 0.5, 0.5),
 	vec3(-0.5,-0.5, 0.5),
 	vec3( 0.5,-0.5, 0.5),
-	vec3( 0.5, 0.5, 0.5),
-	vec3( 0.5,-0.5,-0.5),
-	vec3( 0.5, 0.5,-0.5),
-	vec3( 0.5,-0.5,-0.5),
-	vec3( 0.5, 0.5, 0.5),
-	vec3( 0.5,-0.5, 0.5),
-	vec3( 0.5, 0.5, 0.5),
-	vec3( 0.5, 0.5,-0.5),
-	vec3(-0.5, 0.5,-0.5),
-	vec3( 0.5, 0.5, 0.5),
-	vec3(-0.5, 0.5,-0.5),
-	vec3(-0.5, 0.5, 0.5),
 	vec3( 0.5, 0.5, 0.5),
 	vec3(-0.5, 0.5, 0.5),
 	vec3( 0.5,-0.5, 0.5)
@@ -42,12 +53,18 @@ const vec3 CubeStuff[36] = {
 
 
 out vec4 WorldPosition;
+out vec4 WorldNormal;
 
 
 void main()
 {
-	vec4 LocalSpace = vec4(CubeStuff[gl_VertexID] * BoxExtent.xyz, 1.0);
+	const vec4 LocalSpace = vec4(CubeStuff[gl_VertexID] * BoxExtent.xyz, 1.0);
+	const int Face = gl_VertexID / 6;
+	const int Axis = Face / 3;
+	const float Sign = float((Face % 2) * 2 - 1);
+	const vec3 LocalNormal = vec3(Axis == 0, Axis == 1, Axis == 2) * Sign;
 	WorldPosition = WorldMatrix * LocalSpace;
+	WorldNormal = normalize(WorldMatrix * vec4(LocalNormal, 1.0));
 	if (ViewToClip.z != 0.0)
 	{
 		// Orthographic Rendering
