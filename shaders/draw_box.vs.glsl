@@ -64,7 +64,8 @@ void main()
 	const float Sign = float((Face % 2) * 2 - 1);
 	const vec3 LocalNormal = vec3(Axis == 0, Axis == 1, Axis == 2) * Sign;
 	WorldPosition = WorldMatrix * LocalSpace;
-	WorldNormal = normalize(WorldMatrix * vec4(LocalNormal, 1.0));
+	WorldNormal = WorldRotation * vec4(LocalNormal, 1.0);
+	WorldNormal = vec4(normalize(WorldNormal.xyz / WorldNormal.w), 1.0);
 	if (ViewToClip.z != 0.0)
 	{
 		// Orthographic Rendering

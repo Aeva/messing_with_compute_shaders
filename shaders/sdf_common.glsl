@@ -94,6 +94,7 @@ float HelloWorldSDF(vec3 Test)
 	float Cutaway1 = SphereSDF(Translate(Test, vec3(-50, -50, 100)), 150);
 	float Cutaway2 = SphereSDF(Translate(Test, vec3(100, 100, 100)), 80);
 	float Cutaway3 = SphereSDF(Translate(Test, vec3(-10, -10, -100)), 100);
-	float Cutaway4 = BoxSDF(RotateY(Test, 0.785398), vec3(100, 400, 100));
-	return Difference(Difference(Difference(Difference(Solid, Cutaway1), Cutaway2), Cutaway3), Cutaway4);
+	float Cutaway4 = BoxSDF(RotateY(Translate(Test, vec3(100, 0, 55)), 0.785398), vec3(60, 400, 60));
+	float Cutaway5 = BoxSDF(RotateZ(Translate(Test, vec3(-100, -100, 0)), 0.785398), vec3(50, 50, 400));
+	return Difference(Difference(Difference(Difference(Difference(Solid, Cutaway1), Cutaway2), Cutaway3), Cutaway4), Cutaway5);
 }

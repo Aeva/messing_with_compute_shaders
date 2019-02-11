@@ -10,7 +10,7 @@ ShaderPipeline DrawSphere;
 ShaderPipeline DrawBox;
 
 Buffer SphereInfo[4];
-Buffer BoxInfo[1];
+Buffer BoxInfo[2];
 Buffer ScreenInfo;
 
 GLuint TimingQuery;
@@ -41,11 +41,13 @@ void SetupSphereInfo()
 }
 
 
-void FillBox(int Index, float X, float Y, float Z, float ExtentX, float ExtentY, float ExtentZ, float Mode)
+void FillBox(int Index, float X, float Y, float Z,
+	float RotateX, float RotateY, float RotateZ,
+	float ExtentX, float ExtentY, float ExtentZ, float Mode)
 {
 	const size_t Vec4Size = sizeof(GLfloat[4]);
 	const size_t Mat4Size = sizeof(GLfloat[16]);
-	const size_t TotalSize = Vec4Size + Mat4Size * 2;
+	const size_t TotalSize = Vec4Size + Mat4Size * 3;
 	BlobBuilder Blob(TotalSize);
 	Blob.Write(ExtentX);
 	Blob.Write(ExtentY);
@@ -53,7 +55,26 @@ void FillBox(int Index, float X, float Y, float Z, float ExtentX, float ExtentY,
 	Blob.Write(Mode);
 	auto WorldMatrix = Blob.Advance<GLfloat[16]>();
 	auto InvWorldMatrix = Blob.Advance<GLfloat[16]>();
-	YRotationMatrix(*WorldMatrix, 45.0);
+	auto Rotation = Blob.Advance<GLfloat[16]>();
+	float Translation[16];
+	if (RotateX > 0.0)
+	{
+		XRotationMatrix(*Rotation, RotateX);
+	}
+	else if (RotateY > 0.0)
+	{
+		YRotationMatrix(*Rotation, RotateY);
+	}
+	else if (RotateZ > 0.0)
+	{
+		ZRotationMatrix(*Rotation, RotateZ);
+	}
+	else
+	{
+		IdentityMatrix(*Rotation);
+	}
+	TranslationMatrix(Translation, X, Y, Z);
+	MultiplyMatrices(*WorldMatrix, Translation, *Rotation);
 	InvertMatrix(*InvWorldMatrix, *WorldMatrix);
 	BoxInfo[Index].Initialize(Blob.Data(), TotalSize);
 }
@@ -61,7 +82,8 @@ void FillBox(int Index, float X, float Y, float Z, float ExtentX, float ExtentY,
 
 void SetupBoxInfo()
 {
-	FillBox(0, 0, 0, 0, 100, 400, 100, -1);
+	FillBox(0, 100, 0, 55, 0, 45, 0, 60, 400, 60, -1);
+	FillBox(1, -100, -100, 0, 0, 0, 45, 50, 50, 400, -1);
 }
 
 
@@ -175,7 +197,7 @@ void RenderingExperiment::Render()
 	}
 	DrawBox.Activate();
 	ScreenInfo.Bind(GL_UNIFORM_BUFFER, 1);
-	for (int i=0; i<1; ++i)
+	for (int i=0; i<2; ++i)
 	{
 		BoxInfo[i].Bind(GL_UNIFORM_BUFFER, 0);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
