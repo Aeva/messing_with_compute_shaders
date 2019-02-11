@@ -1,21 +1,13 @@
 prepend: shaders/draw_sphere.etc.glsl
 --------------------------------------------------------------------------------
 
-const vec2 VertexData[12] = {
-	// Front Face
+const vec2 VertexData[6] = {
 	vec2( 1.0,  1.0),
 	vec2(-1.0,  1.0),
 	vec2(-1.0, -1.0),
 	vec2(-1.0, -1.0),
 	vec2( 1.0, -1.0),
-	vec2( 1.0,  1.0),
-	// Back Face
-	vec2(-1.0, -1.0),
-	vec2(-1.0,  1.0),
-	vec2( 1.0,  1.0),
-	vec2( 1.0,  1.0),
-	vec2( 1.0, -1.0),
-	vec2(-1.0, -1.0)
+	vec2( 1.0,  1.0)
 };
 
 

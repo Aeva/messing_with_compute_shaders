@@ -23,7 +23,7 @@ void main()
 	}
 	else
 	{
-		const float Dir = gl_FrontFacing ? -1.0 : 1.0;
+		const float Dir = SphereParams.w >= 0.0 ? 1.0 : -1.0;
 		const float Offset = sqrt(1 - BisectDot) * abs(SphereParams.w);
 		const float NewDepth = Offset * Dir + ViewPosition.z;
 		const vec4 NewViewPosition = vec4(ViewPosition.xy, NewDepth, 1);

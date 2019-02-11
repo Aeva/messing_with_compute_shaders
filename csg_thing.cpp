@@ -171,7 +171,7 @@ void RenderingExperiment::Render()
 	for (int i=0; i<4; ++i)
 	{
 		SphereInfo[i].Bind(GL_UNIFORM_BUFFER, 0);
-		glDrawArrays(GL_TRIANGLES, 0, 12);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
 	}
 	DrawBox.Activate();
 	ScreenInfo.Bind(GL_UNIFORM_BUFFER, 1);
