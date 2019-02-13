@@ -1,0 +1,27 @@
+(shape solid
+	(sphere 200))
+
+(shape cutaway-1
+	(translate -50 -50 100)
+	(sphere 150))
+
+(shape cutaway-2
+	(translate 100 100 100)
+	(sphere 80))
+
+(shape cutaway-3
+	(translate -10 -10 -100)
+	(sphere 100))
+
+(shape cutaway-4
+	(rotate-y 45)
+	(translate 100 0 55)
+	(box 60 400 60))
+
+(shape cutaway-5
+	(rotate-z 45)
+	(translate -100 -100 0)
+	(box 50 50 400))
+
+
+(difference solid cutaway-1 cutaway-2 cutaway-3 cutaway-4 cutaway-5)
