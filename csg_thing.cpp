@@ -1,5 +1,8 @@
 #include <math.h>
 #include <iostream>
+#include <fstream>
+#include <vector>
+#include <cstdint>
 #include "glue/vector_math.h"
 #include "glue/blob_builder.h"
 #include "csg_thing.h"
@@ -9,81 +12,49 @@ using namespace RenderingExperiment;
 ShaderPipeline DrawSphere;
 ShaderPipeline DrawBox;
 
-Buffer SphereInfo[4];
-Buffer BoxInfo[2];
+std::vector<Buffer> SphereInfo;
+std::vector<Buffer> BoxInfo;
 Buffer ScreenInfo;
 
 GLuint TimingQuery;
 
 
-void FillSphere(int Index, float X, float Y, float Z, float Radius)
+void FillShapesFromBlob()
 {
-	const size_t Vec4Size = sizeof(GLfloat[4]);
-	const size_t TotalSize = Vec4Size;
-	BlobBuilder Blob(TotalSize);
-	// Sphere Origin
-	Blob.Write(X);
-	Blob.Write(Y);
-	Blob.Write(Z);
-	// Sphere Radius
-	Blob.Write(Radius);
-	SphereInfo[Index].Initialize(Blob.Data(), TotalSize);
-}
+	std::ifstream InFile("shape.blob");
+	InFile.seekg(0, InFile.end);
+	size_t FileLength = InFile.tellg();
+	InFile.seekg(0, InFile.beg);
 
+	const size_t LayoutMetaSize = sizeof(uint32_t) * 4;
+	char LayoutMeta[LayoutMetaSize];
+	InFile.read(LayoutMeta, LayoutMetaSize);
 
-void SetupSphereInfo()
-{
-	// negative radius indicates cutaway
-	FillSphere(0, 0, 0, 0, 200);
-	FillSphere(1, -50, -50, 100, -150);
-	FillSphere(2, 100, 100, 100, -80);
-	FillSphere(3, -10, -10, -100, -100);
-}
+	uint32_t* LayoutCursor = (uint32_t*)LayoutMeta;
+	const uint32_t SphereCount = *(LayoutCursor + 0);
+	const uint32_t BoxCount = *(LayoutCursor + 1);
+	const uint32_t SphereSize = *(LayoutCursor + 2);
+	const uint32_t BoxSize = *(LayoutCursor + 3);
 
+	SphereInfo.resize(SphereCount);
+	BoxInfo.resize(BoxCount);
 
-void FillBox(int Index, float X, float Y, float Z,
-	float RotateX, float RotateY, float RotateZ,
-	float ExtentX, float ExtentY, float ExtentZ, float Mode)
-{
-	const size_t Vec4Size = sizeof(GLfloat[4]);
-	const size_t Mat4Size = sizeof(GLfloat[16]);
-	const size_t TotalSize = Vec4Size + Mat4Size * 3;
-	BlobBuilder Blob(TotalSize);
-	Blob.Write(ExtentX);
-	Blob.Write(ExtentY);
-	Blob.Write(ExtentZ);
-	Blob.Write(Mode);
-	auto WorldMatrix = Blob.Advance<GLfloat[16]>();
-	auto InvWorldMatrix = Blob.Advance<GLfloat[16]>();
-	auto Rotation = Blob.Advance<GLfloat[16]>();
-	float Translation[16];
-	if (RotateX > 0.0)
+	const size_t ShapeDataSize = SphereSize * SphereCount + BoxSize * BoxCount;
+	void* ShapeData = malloc(ShapeDataSize);
+	InFile.read((char*)ShapeData, ShapeDataSize);
+
+	char* Cursor = (char*)ShapeData;
+	for (int i=0; i<SphereCount; ++i)
 	{
-		XRotationMatrix(*Rotation, RotateX);
+		SphereInfo[i].Initialize((void*)Cursor, SphereSize);
+		Cursor += SphereSize;
 	}
-	else if (RotateY > 0.0)
+	for (int i=0; i<BoxCount; ++i)
 	{
-		YRotationMatrix(*Rotation, RotateY);
+		BoxInfo[i].Initialize((void*)Cursor, BoxSize);
+		Cursor += BoxSize;
 	}
-	else if (RotateZ > 0.0)
-	{
-		ZRotationMatrix(*Rotation, RotateZ);
-	}
-	else
-	{
-		IdentityMatrix(*Rotation);
-	}
-	TranslationMatrix(Translation, X, Y, Z);
-	MultiplyMatrices(*WorldMatrix, Translation, *Rotation);
-	InvertMatrix(*InvWorldMatrix, *WorldMatrix);
-	BoxInfo[Index].Initialize(Blob.Data(), TotalSize);
-}
-
-
-void SetupBoxInfo()
-{
-	FillBox(0, 100, 0, 55, 0, 45, 0, 60, 400, 60, -1);
-	FillBox(1, -100, -100, 0, 0, 0, 45, 50, 50, 400, -1);
+	free(ShapeData);
 }
 
 
@@ -164,8 +135,7 @@ StatusCode RenderingExperiment::Setup()
 		 {GL_FRAGMENT_SHADER, "shaders/draw_box.fs.glsl"}}));
 
 	SetupScreenInfo();
-	SetupSphereInfo();
-	SetupBoxInfo();
+	FillShapesFromBlob();
 
 	// cheese opengl into letting us draw triangles without any data
   	GLuint vao;
@@ -190,14 +160,14 @@ void RenderingExperiment::Render()
 	glBeginQuery(GL_TIME_ELAPSED, TimingQuery);
 	DrawSphere.Activate();
 	ScreenInfo.Bind(GL_UNIFORM_BUFFER, 1);
-	for (int i=0; i<4; ++i)
+	for (int i=0; i<SphereInfo.size(); ++i)
 	{
 		SphereInfo[i].Bind(GL_UNIFORM_BUFFER, 0);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 	}
 	DrawBox.Activate();
 	ScreenInfo.Bind(GL_UNIFORM_BUFFER, 1);
-	for (int i=0; i<2; ++i)
+	for (int i=0; i<BoxInfo.size(); ++i)
 	{
 		BoxInfo[i].Bind(GL_UNIFORM_BUFFER, 0);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
