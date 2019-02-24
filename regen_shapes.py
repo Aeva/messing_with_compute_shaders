@@ -92,12 +92,12 @@ if __name__ == "__main__":
             blob.write(c_vec4(*extent, mode))
             translation = make_translation(*position)
             rotation = IDENTITY
-            if rotation[0] != 0:
-                rotation = make_rotate_x(rotation[0])
-            elif rotation[1] != 0:
-                rotation = make_rotate_y(rotation[1])
-            elif rotation[2] != 0:
-                rotation = make_rotate_z(rotation[2])
+            if rotate[0] != 0:
+                rotation = make_rotate_x(rotate[0])
+            elif rotate[1] != 0:
+                rotation = make_rotate_y(rotate[1])
+            elif rotate[2] != 0:
+                rotation = make_rotate_z(rotate[2])
             blob.write(c_mat4(*matxmat(translation, rotation)))
             blob.write(c_mat4(*rotation))
 
